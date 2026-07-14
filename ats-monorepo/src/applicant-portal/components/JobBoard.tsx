@@ -5,7 +5,7 @@ import { Search, MapPin, Briefcase, DollarSign, Calendar, FileText, ArrowRight, 
 import { motion, AnimatePresence } from 'motion/react';
 
 export const JobBoard: React.FC = () => {
-  const { jobs, setActiveApplicationId, currentUser } = useAppState();
+  const { jobs, applyToJob, setActiveApplicationId, currentUser } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -21,7 +21,6 @@ export const JobBoard: React.FC = () => {
   const [resumeName, setResumeName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Prefill form states from logged in user profile when apply modal opens
   React.useEffect(() => {
     if (isApplyModalOpen && currentUser) {
       setName(currentUser.name || '');
@@ -51,7 +50,6 @@ export const JobBoard: React.FC = () => {
     if (portfolio) formData.append('portfolio_url', portfolio);
     if (github) formData.append('github_url', github);
     
-    // Grab the actual file from the hidden input element (if it exists)
     const fileInput = document.getElementById('applicant-resume-upload') as HTMLInputElement;
     if (fileInput.files && fileInput.files[0]) {
       formData.append('resume', fileInput.files[0]);
@@ -66,7 +64,21 @@ export const JobBoard: React.FC = () => {
       if (!response.ok) throw new Error("Failed to submit application");
       
       const data = await response.json();
-      setSuccessAppId(data.application_id || data.id); 
+      const backendId = data.application_id || data.id; 
+      
+      // SYNC STEP: Tell the React Frontend that the application exists!
+      applyToJob({
+        id: backendId, // The real ID from Python
+        jobId: selectedJob.id,
+        jobTitle: selectedJob.title,
+        applicantName: name,
+        applicantEmail: email,
+        applicantPhone: phone,
+        portfolioUrl: portfolio,
+        githubUrl: github
+      });
+
+      setSuccessAppId(backendId); 
       
       // Reset form
       setName('');
@@ -431,6 +443,10 @@ export const JobBoard: React.FC = () => {
                         setIsApplyModalOpen(false);
                         setActiveApplicationId(successAppId);
                         setSuccessAppId(null);
+                        
+                        // Automatically switch to the Tracking tab
+                        const trackerBtn = document.getElementById('tracker-tab-btn');
+                        if (trackerBtn) trackerBtn.click();
                       }}
                       className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all"
                     >

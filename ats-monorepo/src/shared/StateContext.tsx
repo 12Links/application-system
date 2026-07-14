@@ -15,6 +15,7 @@ interface StateContextType {
   addJob: (job: Omit<Job, 'id' | 'createdAt'>) => void;
   deleteJob: (id: string) => void;
   applyToJob: (appData: {
+    id?: string; // NEW: Allows us to pass the real backend ID
     jobId: string;
     jobTitle: string;
     applicantName: string;
@@ -22,6 +23,7 @@ interface StateContextType {
     applicantPhone: string;
     portfolioUrl?: string;
     githubUrl?: string;
+    resumeUrl?: string;
   }) => string; 
   updateApplicationStage: (appId: string, stage: ApplicationStage, notes?: string) => void;
   submitCoding: (appId: string, submission: CodingSubmission) => void;
@@ -193,6 +195,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const applyToJob = (appData: {
+    id?: string;
     jobId: string;
     jobTitle: string;
     applicantName: string;
@@ -202,10 +205,17 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     githubUrl?: string;
     resumeUrl?: string;
   }) => {
-    const newId = `app-${Date.now()}`;
+    const newId = appData.id || `app-${Date.now()}`;
     const newApp: Application = {
       id: newId,
-      ...appData,
+      jobId: appData.jobId,
+      jobTitle: appData.jobTitle,
+      applicantName: appData.applicantName,
+      applicantEmail: appData.applicantEmail,
+      applicantPhone: appData.applicantPhone,
+      portfolioUrl: appData.portfolioUrl,
+      githubUrl: appData.githubUrl,
+      resumeUrl: appData.resumeUrl,
       appliedAt: new Date().toISOString(),
       currentStage: ApplicationStage.Applied,
       stageHistory: [

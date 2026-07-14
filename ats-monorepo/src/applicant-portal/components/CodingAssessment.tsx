@@ -17,17 +17,20 @@ export const CodingAssessment: React.FC = () => {
   const [achievedScore, setAchievedScore] = useState(0);
 
   const activeApp = applications.find(app => app.id === activeApplicationId || app.applicantEmail.toLowerCase() === activeApplicationId?.toLowerCase());
-  const question = questions[selectedQuestionIdx] || questions[0];
+  
+  // Safely grab the question, or stay undefined if the array is empty
+  const question = questions && questions.length > 0 ? (questions[selectedQuestionIdx] || questions[0]) : undefined;
 
   // Load starter templates on question or language change
   useEffect(() => {
-    if (question) {
+    if (question && question.starterTemplates) {
       setCode(question.starterTemplates[language] || '');
       setTestResults(null);
       setConsoleLogs(['// Compiler ready. Select language or questions above.']);
     }
   }, [selectedQuestionIdx, language, question]);
 
+  // 1. Safety Check: No Active Application
   if (!activeApp) {
     return (
       <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center max-w-lg mx-auto shadow-sm">
@@ -43,6 +46,7 @@ export const CodingAssessment: React.FC = () => {
   const isEligible = activeApp.currentStage === ApplicationStage.CodingAssessment;
   const isAlreadyDone = !!activeApp.codingSubmission;
 
+  // 2. Safety Check: Application not in the right stage
   if (!isEligible && !isAlreadyDone) {
     return (
       <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
@@ -53,6 +57,19 @@ export const CodingAssessment: React.FC = () => {
         </p>
         <p className="text-xs text-slate-400">
           The recruitment team will unlock the technical screening challenge once your portfolio and resume screening are approved.
+        </p>
+      </div>
+    );
+  }
+
+  // 3. NEW SAFETY CHECK: No Questions exist in the database yet
+  if (!question) {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
+        <AlertCircle className="w-14 h-14 text-rose-500 mx-auto stroke-[1.5]" />
+        <h3 className="text-lg font-bold text-slate-800">No Assessment Configured</h3>
+        <p className="text-sm text-slate-500">
+          The recruitment team hasn't added any coding challenges to the platform yet. Please ask an Admin to configure the assessment questions.
         </p>
       </div>
     );

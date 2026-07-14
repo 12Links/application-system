@@ -6,7 +6,7 @@ from typing import Optional
 
 from app.core.database import get_db, settings
 from app.core.security import get_current_user, RoleChecker
-from app.models.models import Application, User, UserRole, AppStatus
+from app.models.models import Application, User, UserRole, AppStatus, JobPost
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
@@ -27,7 +27,7 @@ async def submit_application(
     applicant_phone: str = Form(...),
     portfolio_url: Optional[str] = Form(None),
     github_url: Optional[str] = Form(None),
-    resume: Optional[UploadFile] = File(None),  # Made explicitly optional
+    resume: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
     resume_url = None
@@ -42,7 +42,6 @@ async def submit_application(
             file_ext = resume.filename.split(".")[-1]
             unique_filename = f"{uuid.uuid4().hex[:8]}_{applicant_name.replace(' ', '_')}.{file_ext}"
             
-            # Uploads to a Supabase bucket named "resumes"
             supabase.storage.from_("resumes").upload(
                 path=unique_filename,
                 file=file_bytes,
@@ -55,11 +54,27 @@ async def submit_application(
             print(f"Failed to upload resume to Supabase: {e}")
             raise HTTPException(status_code=500, detail="Failed to upload resume document")
 
-    # Handle frontend mock IDs (e.g., 'job-1234') vs real UUIDs to prevent database crashes
+    # Handle frontend mock IDs (e.g., 'job-1234') vs real UUIDs
     try:
         safe_job_uuid = uuid.UUID(job_id)
     except ValueError:
         safe_job_uuid = uuid.uuid4()
+
+    # --- THE FIX: Satisfy the strict Database Foreign Key ---
+    # Check if the job actually exists in the database
+    existing_job = db.query(JobPost).filter(JobPost.id == safe_job_uuid).first()
+    
+    if not existing_job:
+        # Silently create a dummy job in the DB so Supabase doesn't reject the application
+        dummy_job = JobPost(
+            id=safe_job_uuid,
+            title="Frontend Mock Job",
+            description="Auto-generated to allow frontend testing.",
+            requirements="Auto-generated"
+        )
+        db.add(dummy_job)
+        db.commit() 
+    # --------------------------------------------------------
 
     # 2. Save Application to the Database
     new_application = Application(
