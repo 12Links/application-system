@@ -27,30 +27,33 @@ async def submit_application(
     applicant_phone: str = Form(...),
     portfolio_url: Optional[str] = Form(None),
     github_url: Optional[str] = Form(None),
-    resume: UploadFile = File(...),
+    resume: Optional[UploadFile] = File(None),  # Made explicitly optional
     db: Session = Depends(get_db)
 ):
-    # 1. Upload resume to Supabase Storage
-    if not resume.filename.endswith((".pdf", ".doc", ".docx")):
-        raise HTTPException(status_code=400, detail="Only PDF or DOCX files are allowed")
+    resume_url = None
 
-    try:
-        file_bytes = await resume.read()
-        file_ext = resume.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4().hex[:8]}_{applicant_name.replace(' ', '_')}.{file_ext}"
-        
-        # Uploads to a Supabase bucket named "resumes"
-        supabase.storage.from_("resumes").upload(
-            path=unique_filename,
-            file=file_bytes,
-            file_options={"content-type": resume.content_type}
-        )
-        
-        resume_url = supabase.storage.from_("resumes").get_public_url(unique_filename)
-        
-    except Exception as e:
-        print(f"Failed to upload resume to Supabase: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload resume document")
+    # 1. Only attempt Supabase upload if a resume file was actually provided
+    if resume is not None and resume.filename:
+        if not resume.filename.endswith((".pdf", ".doc", ".docx")):
+            raise HTTPException(status_code=400, detail="Only PDF or DOCX files are allowed")
+
+        try:
+            file_bytes = await resume.read()
+            file_ext = resume.filename.split(".")[-1]
+            unique_filename = f"{uuid.uuid4().hex[:8]}_{applicant_name.replace(' ', '_')}.{file_ext}"
+            
+            # Uploads to a Supabase bucket named "resumes"
+            supabase.storage.from_("resumes").upload(
+                path=unique_filename,
+                file=file_bytes,
+                file_options={"content-type": resume.content_type}
+            )
+            
+            resume_url = supabase.storage.from_("resumes").get_public_url(unique_filename)
+            
+        except Exception as e:
+            print(f"Failed to upload resume to Supabase: {e}")
+            raise HTTPException(status_code=500, detail="Failed to upload resume document")
 
     # Handle frontend mock IDs (e.g., 'job-1234') vs real UUIDs to prevent database crashes
     try:
@@ -67,7 +70,6 @@ async def submit_application(
         portfolio_url=portfolio_url,
         github_url=github_url,
         resume_url=resume_url
-        # The database model should default the status to "Applied" automatically
     )
     
     db.add(new_application)

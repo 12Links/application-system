@@ -43,7 +43,6 @@ export const JobBoard: React.FC = () => {
     if (!selectedJob) return;
     setIsSubmitting(true);
 
-    // We must use FormData to send the PDF file alongside the text
     const formData = new FormData();
     formData.append('job_id', selectedJob.id);
     formData.append('applicant_name', name);
@@ -52,7 +51,7 @@ export const JobBoard: React.FC = () => {
     if (portfolio) formData.append('portfolio_url', portfolio);
     if (github) formData.append('github_url', github);
     
-    // Grab the actual file from the hidden input element
+    // Grab the actual file from the hidden input element (if it exists)
     const fileInput = document.getElementById('applicant-resume-upload') as HTMLInputElement;
     if (fileInput.files && fileInput.files[0]) {
       formData.append('resume', fileInput.files[0]);
@@ -61,13 +60,13 @@ export const JobBoard: React.FC = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/applications/apply`, {
         method: 'POST',
-        body: formData, // Notice we don't set Content-Type; the browser handles the boundary automatically for files
+        body: formData, 
       });
 
       if (!response.ok) throw new Error("Failed to submit application");
       
       const data = await response.json();
-      setSuccessAppId(data.application_id || data.id); // Uses returned ID
+      setSuccessAppId(data.application_id || data.id); 
       
       // Reset form
       setName('');
@@ -268,9 +267,9 @@ export const JobBoard: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100"
+              className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
             >
-              <div className="px-6 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="px-6 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10">
                 <div>
                   <h3 className="font-bold text-slate-800">Job Application</h3>
                   <p className="text-xs text-slate-500 mt-0.5">{selectedJob?.title}</p>
@@ -357,12 +356,11 @@ export const JobBoard: React.FC = () => {
 
                   {/* Resume Upload Box (Drag and Drop / Click) */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Upload Resume (PDF, DOCX) *</label>
+                    <label className="text-xs font-semibold text-slate-600">Upload Resume (PDF, DOCX) (Optional)</label>
                     <div className="border-2 border-dashed border-slate-200 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50/10 rounded-2xl p-6 text-center cursor-pointer transition-colors relative group">
                       <input
                         id="applicant-resume-upload"
                         type="file"
-                        required
                         accept=".pdf,.doc,.docx"
                         onChange={handleFileUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer"
@@ -380,6 +378,14 @@ export const JobBoard: React.FC = () => {
                         </div>
                       )}
                     </div>
+                    
+                    {/* The fallback email message */}
+                    <div className="mt-2 text-center p-3 rounded-lg bg-indigo-50/50 border border-indigo-100">
+                      <p className="text-xs font-medium text-slate-600">
+                        If you are having trouble with uploading the CV, please send the email to <a href="mailto:info@12links.co.za" className="text-indigo-600 hover:underline font-bold">info@12links.co.za</a>
+                      </p>
+                    </div>
+
                   </div>
 
                   {/* Action Buttons */}
