@@ -20,7 +20,7 @@ app = FastAPI(
 # Set up CORS so your React frontends can talk to this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, you will change this to your Cloudflare Pages URLs
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # In production, you will change this to our Cloudflare Pages URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

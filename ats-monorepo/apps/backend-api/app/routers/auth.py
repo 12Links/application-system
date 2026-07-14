@@ -51,9 +51,21 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 # 2. Login Endpoint
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # 1. Master Admin Bypass (Reads directly from your .env file)
+    if form_data.username == settings.ADMIN_EMAIL and form_data.password == settings.ADMIN_PASSWORD:
+        access_token = create_access_token(
+            data={"sub": form_data.username, "role": "admin"}
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
+
+    # 2. Standard Database User Check (For applicants)
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Create JWT Token
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role.value})

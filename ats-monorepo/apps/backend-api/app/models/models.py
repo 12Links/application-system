@@ -36,9 +36,20 @@ class Application(Base):
     __tablename__ = "applications"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id = Column(UUID(as_uuid=True), ForeignKey("job_posts.id", ondelete="CASCADE"))
-    applicant_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    
+    # Made nullable=True so guest users can apply without crashing the DB!
+    applicant_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True) 
+    
     status = Column(SQLEnum(AppStatus), default=AppStatus.pending, nullable=False)
+    
+    # 12 Links Application Form Fields
+    applicant_name = Column(String, nullable=True)
+    applicant_email = Column(String, nullable=True)
+    applicant_phone = Column(String, nullable=True)
+    portfolio_url = Column(String, nullable=True)
+    github_url = Column(String, nullable=True)
     resume_url = Column(String, nullable=True)
+
 class Contract(Base):
     __tablename__ = "contracts"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

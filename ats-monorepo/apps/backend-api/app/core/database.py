@@ -4,16 +4,22 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # Supabase PostgreSQL URI (e.g., postgresql://postgres.xxxx:[pwd]@xxxx.pooler.supabase.com:5432/postgres)
+    # Supabase PostgreSQL URI
     DATABASE_URL: str
     SUPABASE_URL: str
     SUPABASE_KEY: str
     JWT_SECRET: str = "supersecret_key_change_me_in_production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    
+    # 12 Links Admin & AI Variables
+    GEMINI_API_KEY: str
+    ADMIN_EMAIL: str
+    ADMIN_PASSWORD: str
 
     class Config:
         env_file = ".env"
+        extra = "ignore"  # Prevents crashes if extra variables exist in .env
 
 settings = Settings()
 

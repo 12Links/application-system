@@ -1,0 +1,6 @@
+{
+  "name": "Developer Recruitment Portal",
+  "description": "An all-in-one developer applicant tracking system featuring an applicant job board, real-time status tracker, interactive live coding playground, and an admin candidate pipeline pipeline manager.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
