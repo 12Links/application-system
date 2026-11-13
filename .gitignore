@@ -1,8 +1,9 @@
 # Environment variables & secrets
 .env
 .env.*
-!.env.example
+.env*.local
 *.env
+!.env.example
 
 # Dependencies
 node_modules/
@@ -22,6 +23,3 @@ build/
 *.log
 .DS_Store
 Thumbs.db
-
-.vercel
-.env*

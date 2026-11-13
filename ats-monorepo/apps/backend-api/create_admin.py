@@ -44,11 +44,16 @@ def create_or_update_admin(email: str, password: str):
 
 if __name__ == "__main__":
     if len(sys.argv) >= 3:
-        target_email = sys.argv[1]
+        target_email = sys.argv[1].strip().lower()
         target_password = sys.argv[2]
-    else:
-        target_email = settings.ADMIN_EMAIL
+    elif settings.ADMIN_EMAIL and settings.ADMIN_PASSWORD:
+        target_email = settings.ADMIN_EMAIL.strip().lower()
         target_password = settings.ADMIN_PASSWORD
+    else:
+        print("Error: Administrator credentials not provided.")
+        print("Usage: python create_admin.py <admin_email> <admin_password>")
+        print("Or set ADMIN_EMAIL and ADMIN_PASSWORD environment variables.")
+        sys.exit(1)
         
     print(f"Target Admin Email: {target_email}")
     create_or_update_admin(target_email, target_password)

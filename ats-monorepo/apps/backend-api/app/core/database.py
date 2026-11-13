@@ -1,4 +1,5 @@
 import os
+import secrets
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from pydantic_settings import BaseSettings
@@ -17,23 +18,23 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = (
         os.getenv("SUPABASE_URL")
         or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        or "https://placeholder.supabase.co"
+        or ""
     )
     SUPABASE_KEY: str = (
         os.getenv("SUPABASE_SERVICE_ROLE_KEY")
         or os.getenv("SUPABASE_KEY")
         or os.getenv("SUPABASE_ANON_KEY")
-        or "placeholder_key"
+        or ""
     )
 
-    JWT_SECRET: str = os.getenv("JWT_SECRET") or "supersecret_key_change_me_in_production"
+    JWT_SECRET: str = os.getenv("JWT_SECRET") or os.getenv("SUPABASE_JWT_SECRET") or secrets.token_hex(32)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    # 12 Links Admin & AI Variables
+    # 12 Links Admin & AI Variables (Configured securely via environment variables)
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY") or ""
-    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL") or "info@12links.co.za"
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD") or "Admin@12links"
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL") or ""
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD") or ""
 
     class Config:
         extra = "ignore"

@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 import google.generativeai as genai
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from supabase import create_client, Client
@@ -13,12 +14,20 @@ from app.models.models import Application, UserRole, AppStatus, Contract
 
 router = APIRouter(prefix="/workflow", tags=["Applicant Workflow"])
 
-# Initialize Supabase Storage Client
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+# Initialize Supabase Storage Client (populated via environment variables)
+supabase: Optional[Client] = None
+if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+    try:
+        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    except Exception as e:
+        print(f"Supabase client initialization notice: {e}")
 
-# Configure Gemini AI using the key from your .env
+# Configure Gemini AI using the key from environment
 if hasattr(settings, 'GEMINI_API_KEY') and settings.GEMINI_API_KEY:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+    try:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Gemini client initialization notice: {e}")
 
 # Schema for the React frontend's code submission
 class CodeSubmission(BaseModel):

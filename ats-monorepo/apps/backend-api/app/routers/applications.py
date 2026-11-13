@@ -12,7 +12,12 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
 # Initialize Supabase Storage Client for Resumes
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+supabase: Optional[Client] = None
+if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+    try:
+        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    except Exception as e:
+        print(f"Supabase storage client init notice: {e}")
 
 # Pydantic schema for status updates
 class StatusUpdateSchema(BaseModel):
@@ -38,6 +43,8 @@ async def submit_application(
             raise HTTPException(status_code=400, detail="Only PDF or DOCX files are allowed")
 
         try:
+            if not supabase:
+                raise ValueError("Supabase storage client is not configured in environment variables")
             file_bytes = await resume.read()
             file_ext = resume.filename.split(".")[-1]
             unique_filename = f"{uuid.uuid4().hex[:8]}_{applicant_name.replace(' ', '_')}.{file_ext}"

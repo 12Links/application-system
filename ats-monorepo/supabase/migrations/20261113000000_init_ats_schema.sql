@@ -120,15 +120,16 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 9. Seed Initial Real Admin Account
-INSERT INTO users (id, email, password_hash, name, role)
-VALUES (
-    gen_random_uuid(),
-    'info@12links.co.za',
-    crypt('Admin@12links', gen_salt('bf')),
-    'Recruitment Administrator',
-    'admin'
-)
-ON CONFLICT (email) DO UPDATE
-SET password_hash = crypt('Admin@12links', gen_salt('bf')),
-    role = 'admin';
+-- 9. Administrator Account Setup (Run securely in Supabase SQL Editor)
+-- Replace '<YOUR_ADMIN_EMAIL>' and '<YOUR_STRONG_PASSWORD>' with your chosen credentials:
+-- INSERT INTO users (id, email, password_hash, name, role)
+-- VALUES (
+--     gen_random_uuid(),
+--     'info@12links.co.za',
+--     crypt('<YOUR_STRONG_PASSWORD>', gen_salt('bf')),
+--     'Recruitment Administrator',
+--     'admin'
+-- )
+-- ON CONFLICT (email) DO UPDATE
+-- SET password_hash = crypt('<YOUR_STRONG_PASSWORD>', gen_salt('bf')),
+--     role = 'admin';
