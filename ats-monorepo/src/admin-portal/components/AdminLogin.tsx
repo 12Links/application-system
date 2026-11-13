@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Key, Mail, ArrowRight, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { CompanyLogo } from '../../shared/CompanyLogo';
 import { motion } from 'motion/react';
+import { supabase } from '../../shared/supabaseClient';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -19,10 +20,66 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     const emailClean = email.trim().toLowerCase();
-    // Default to the Vercel multi-service route '/api' or explicitly configured VITE_API_URL
-    const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
 
+    // 1. Authenticate directly via Supabase Auth
     try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: emailClean,
+        password: password,
+      });
+
+      if (!signInError && data?.user) {
+        // Validate admin role in auth metadata
+        const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role;
+        const isMetaAdmin =
+          metaRole === 'admin' ||
+          data.user.app_metadata?.is_admin === true ||
+          data.user.user_metadata?.is_admin === true;
+
+        // Fallback: Check profiles or users table in database
+        let isProfileAdmin = false;
+        if (!isMetaAdmin) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle();
+          isProfileAdmin = profile?.role === 'admin';
+
+          if (!isProfileAdmin) {
+            const { data: userRow } = await supabase
+              .from('users')
+              .select('role')
+              .eq('email', emailClean)
+              .maybeSingle();
+            isProfileAdmin = userRow?.role === 'admin';
+          }
+        }
+
+        if (!isMetaAdmin && !isProfileAdmin) {
+          await supabase.auth.signOut();
+          setError('Access restricted: This account does not possess administrator credentials.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Authenticated as Admin -> save session and open Admin Workspace
+        localStorage.setItem('ats_admin_session', data.session?.access_token || `admin-${Date.now()}`);
+        localStorage.setItem('ats_admin_email', data.user.email || emailClean);
+        localStorage.setItem(
+          'ats_admin_name',
+          data.user.user_metadata?.full_name || data.user.user_metadata?.name || 'Administrator'
+        );
+        onLoginSuccess();
+        return;
+      }
+    } catch (supabaseErr) {
+      console.warn('Supabase Auth client notice, checking backend service:', supabaseErr);
+    }
+
+    // 2. Fallback to backend API (/api/auth/login) which queries Supabase Postgres directly
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
       const formData = new URLSearchParams();
       formData.append('username', emailClean);
       formData.append('password', password);
@@ -38,9 +95,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       if (response.ok) {
         const data = await response.json();
         
-        // Strict role validation: Ensure user has administrator role in Supabase
         if (data.role !== 'admin') {
-          setError('Access denied. This account does not possess administrator credentials.');
+          setError('Access denied: Regular candidate accounts cannot access the administrative console.');
           setIsLoading(false);
           return;
         }
@@ -55,11 +111,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       }
 
       if (response.status === 401 || response.status === 403) {
-        // Check fallback for designated administrator credentials
-        if (checkFallbackAuth(emailClean, password)) {
-          return;
-        }
-        setError('Invalid staff credentials. Only registered administrators in the database are authorized.');
+        setError('Invalid staff credentials. Make sure your user is registered in Supabase and assigned the admin role.');
         setIsLoading(false);
         return;
       }
@@ -67,35 +119,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       const errData = await response.json().catch(() => null);
       throw new Error(errData?.detail || `Server returned ${response.status}`);
     } catch (err: any) {
-      console.warn('API authentication notice, verifying administrative credentials:', err);
-      if (checkFallbackAuth(emailClean, password)) {
-        return;
-      }
-      setError('Unable to authenticate with the administrative service. Please verify your credentials or network connection.');
+      console.error('Authentication notice:', err);
+      setError(err?.message || 'Unable to authenticate with administrative credentials. Please check your credentials or Supabase setup.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const checkFallbackAuth = (targetEmail: string, pass: string): boolean => {
-    // Allows authorized 12 Links administrators access even during database pooler re-sync
-    const authorizedAdmins = [
-      { email: 'info@12links.co.za', passes: ['Admin@12links', 'Admin12links2026!'], name: '12 Links Administrator' },
-      { email: 'admin@12links.co.za', passes: ['Admin12links2026!', 'Admin@12links'], name: 'Recruitment Administrator' }
-    ];
-
-    const match = authorizedAdmins.find(
-      a => a.email.toLowerCase() === targetEmail.toLowerCase() && a.passes.includes(pass)
-    );
-
-    if (match) {
-      localStorage.setItem('ats_admin_session', `admin-token-${Date.now()}`);
-      localStorage.setItem('ats_admin_email', match.email);
-      localStorage.setItem('ats_admin_name', match.name);
-      onLoginSuccess();
-      return true;
-    }
-    return false;
   };
 
   return (
@@ -164,25 +192,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
               placeholder="••••••••••••"
               className="w-full text-xs font-medium px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white outline-none focus:border-slate-800 transition-all placeholder:text-slate-400"
             />
-          </div>
-
-          <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-[11px] text-slate-500 space-y-1">
-            <span className="font-semibold text-slate-700 block">Designated Staff Access</span>
-            <p className="leading-relaxed text-[11px]">
-              Email: <code className="text-slate-800 font-mono font-semibold">info@12links.co.za</code>
-              <br />
-              Password: <code className="text-slate-800 font-mono font-semibold">Admin@12links</code>
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('info@12links.co.za');
-                setPassword('Admin@12links');
-              }}
-              className="text-[11px] font-semibold text-slate-900 hover:text-indigo-600 underline cursor-pointer pt-0.5 block"
-            >
-              Auto-fill staff credentials
-            </button>
           </div>
 
           <button

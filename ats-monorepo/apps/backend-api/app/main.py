@@ -87,6 +87,14 @@ CREATE TABLE IF NOT EXISTS contracts (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255),
+    role VARCHAR(50) DEFAULT 'applicant',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS coding_questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
@@ -111,41 +119,27 @@ def init_db():
         except Exception as meta_err:
             print(f"Metadata create notice: {meta_err}")
 
-    # Provision administrator accounts
+    # Provision administrator account only if specified in environment variables
     try:
         db = SessionLocal()
         try:
             from app.routers.auth import get_password_hash
             
-            # List of admin credentials to guarantee access
-            admin_accounts = [
-                {
-                    "email": (settings.ADMIN_EMAIL or "admin@12links.co.za").strip().lower(),
-                    "password": settings.ADMIN_PASSWORD or "Admin12links2026!",
-                    "name": "Recruitment Administrator"
-                },
-                {
-                    "email": "info@12links.co.za",
-                    "password": "Admin@12links",
-                    "name": "12 Links Administrator"
-                }
-            ]
-            
-            for acc in admin_accounts:
-                existing_admin = db.query(models.User).filter(models.User.email == acc["email"]).first()
+            if settings.ADMIN_EMAIL and settings.ADMIN_PASSWORD:
+                admin_email_clean = settings.ADMIN_EMAIL.strip().lower()
+                existing_admin = db.query(models.User).filter(models.User.email == admin_email_clean).first()
                 if not existing_admin:
                     admin = models.User(
                         id=uuid.uuid4(),
-                        email=acc["email"],
-                        password_hash=get_password_hash(acc["password"]),
-                        name=acc["name"],
+                        email=admin_email_clean,
+                        password_hash=get_password_hash(settings.ADMIN_PASSWORD),
+                        name="Recruitment Administrator",
                         role=models.UserRole.admin
                     )
                     db.add(admin)
                     db.commit()
-                    print(f"Successfully provisioned admin account in Supabase: {acc['email']}")
+                    print(f"Provisioned admin account from env: {admin_email_clean}")
                 else:
-                    # Ensure role is admin
                     if existing_admin.role != models.UserRole.admin:
                         existing_admin.role = models.UserRole.admin
                         db.commit()

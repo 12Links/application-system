@@ -4,6 +4,7 @@ import jwt
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -35,21 +36,6 @@ def create_access_token(data: dict):
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
-
-AUTHORIZED_ADMINS = [
-    {"email": "info@12links.co.za", "passes": ["Admin@12links", "Admin12links2026!"], "name": "12 Links Administrator"},
-    {"email": "admin@12links.co.za", "passes": ["Admin12links2026!", "Admin@12links"], "name": "Recruitment Administrator"}
-]
-
-def check_admin_fallback(email: str, password: str):
-    clean_email = email.strip().lower()
-    for admin in AUTHORIZED_ADMINS:
-        if admin["email"] == clean_email and password in admin["passes"]:
-            return admin
-    if settings.ADMIN_EMAIL and clean_email == settings.ADMIN_EMAIL.strip().lower():
-        if settings.ADMIN_PASSWORD and password == settings.ADMIN_PASSWORD:
-            return {"email": clean_email, "name": "System Administrator"}
-    return None
 
 # Schemas
 class UserCreate(BaseModel):
@@ -83,12 +69,12 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
-# 2. Login Endpoint (Strict Supabase Database Verification with Resilient Fallback)
+# 2. Login Endpoint (Strict Supabase Database Verification)
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     email_clean = form_data.username.strip().lower()
     
-    # Check database verification
+    # 1. Check public.users in Supabase database
     user = None
     try:
         user = db.query(User).filter(User.email == email_clean).first()
@@ -119,40 +105,74 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    # Authorized Administrator Fallback & Auto-Provisioning
-    admin_fallback = check_admin_fallback(email_clean, form_data.password)
-    if admin_fallback:
-        admin_id = str(uuid.uuid4())
-        try:
-            new_admin = User(
-                id=uuid.UUID(admin_id),
-                email=admin_fallback["email"],
-                password_hash=get_password_hash(form_data.password),
-                name=admin_fallback["name"],
-                role=UserRole.admin
-            )
-            db.add(new_admin)
-            db.commit()
-            db.refresh(new_admin)
-            admin_id = str(new_admin.id)
-        except Exception as seed_err:
-            db.rollback()
-            print(f"Notice: Admin auto-seed bypassed: {seed_err}")
+    # 2. Check auth.users table in Supabase PostgreSQL schema
+    try:
+        auth_row = db.execute(
+            text("SELECT id, email, encrypted_password, raw_app_meta_data, raw_user_meta_data FROM auth.users WHERE LOWER(email) = :email"),
+            {"email": email_clean}
+        ).first()
 
-        access_token = create_access_token(
-            data={
-                "sub": admin_id,
-                "email": admin_fallback["email"],
-                "role": "admin"
+        if auth_row and auth_row.encrypted_password:
+            if verify_password(form_data.password, auth_row.encrypted_password):
+                app_meta = auth_row.raw_app_meta_data or {}
+                user_meta = auth_row.raw_user_meta_data or {}
+                is_admin = (
+                    app_meta.get("role") == "admin" or
+                    app_meta.get("is_admin") is True or
+                    user_meta.get("role") == "admin" or
+                    user_meta.get("is_admin") is True
+                )
+                role_val = "admin" if is_admin else "applicant"
+                name_val = user_meta.get("full_name") or user_meta.get("name") or "Administrator"
+
+                # Synchronize into public.users table
+                try:
+                    sync_user = User(
+                        id=auth_row.id if isinstance(auth_row.id, uuid.UUID) else uuid.UUID(str(auth_row.id)),
+                        email=email_clean,
+                        password_hash=auth_row.encrypted_password,
+                        name=name_val,
+                        role=UserRole.admin if is_admin else UserRole.applicant
+                    )
+                    db.add(sync_user)
+                    db.commit()
+                except Exception:
+                    db.rollback()
+
+                access_token = create_access_token(
+                    data={
+                        "sub": str(auth_row.id),
+                        "email": email_clean,
+                        "role": role_val
+                    }
+                )
+                return {
+                    "access_token": access_token,
+                    "token_type": "bearer",
+                    "role": role_val,
+                    "email": email_clean,
+                    "name": name_val
+                }
+    except Exception as auth_query_err:
+        print(f"Notice: auth.users verification check: {auth_query_err}")
+
+    # 3. Environment Variable Admin Override (Configured via Vercel env, never in repo)
+    if settings.ADMIN_EMAIL and email_clean == settings.ADMIN_EMAIL.strip().lower():
+        if settings.ADMIN_PASSWORD and form_data.password == settings.ADMIN_PASSWORD:
+            access_token = create_access_token(
+                data={
+                    "sub": "admin-env",
+                    "email": email_clean,
+                    "role": "admin"
+                }
+            )
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "role": "admin",
+                "email": email_clean,
+                "name": "System Administrator"
             }
-        )
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "role": "admin",
-            "email": admin_fallback["email"],
-            "name": admin_fallback["name"]
-        }
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

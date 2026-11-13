@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../shared/StateContext';
 import { JobBoard } from './components/JobBoard';
 import { ProgressTracker } from './components/ProgressTracker';
@@ -39,6 +39,37 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Auto-close notifications dropdown on tab switch
+  useEffect(() => {
+    setIsNotifOpen(false);
+  }, [activeTab]);
+
+  // Auto-close notifications dropdown on outside click or Escape key
+  useEffect(() => {
+    if (!isNotifOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsNotifOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isNotifOpen]);
 
   const getInitials = (fullName?: string, email?: string) => {
     if (fullName && fullName.trim()) {
@@ -143,7 +174,7 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
             )}
 
             {/* Bell Icon dropdown */}
-            <div className="relative">
+            <div ref={notifRef} className="relative">
               <button
                 id="applicant-bell-btn"
                 onClick={() => setIsNotifOpen(!isNotifOpen)}

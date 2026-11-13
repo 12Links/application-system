@@ -50,21 +50,26 @@ interface StateContextType {
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Jobs: Clean slate (Zero mock data). Created by administrators in the Admin portal.
+  // Jobs: Grounded Pretoria roles + dynamic admin postings
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('ats_jobs');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Filter out any leftover mock jobs
-          return parsed.filter(j => !['job-101', 'job-102', 'job-103'].includes(j.id));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Update any older graduate cohort titles to Class of 2026 / 2027
+          return parsed.map(j => {
+            if (j.id === 'job-103' || j.title.includes('2024 / 2025')) {
+              return { ...j, title: 'Graduate Software Developer (Class of 2026 / 2027)' };
+            }
+            return j;
+          });
         }
       } catch (e) {
         console.error(e);
       }
     }
-    return [];
+    return INITIAL_JOBS;
   });
 
   // Applications (No mock applicants - clean slate)

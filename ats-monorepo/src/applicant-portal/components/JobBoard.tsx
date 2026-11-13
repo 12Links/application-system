@@ -33,9 +33,8 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedWorkMode, setSelectedWorkMode] = useState('All');
   const [selectedRoleType, setSelectedRoleType] = useState('All');
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [detailsJob, setDetailsJob] = useState<Job | null>(null);
+  const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [successAppId, setSuccessAppId] = useState<string | null>(null);
 
   // Form states
@@ -71,7 +70,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
 
   // Auto-fill from signed-in candidate
   React.useEffect(() => {
-    if (isApplyModalOpen && currentUser) {
+    if (applyJob && currentUser) {
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || '');
@@ -82,7 +81,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
         setResumeName(currentUser.resumeFileName);
       }
     }
-  }, [isApplyModalOpen, currentUser]);
+  }, [applyJob, currentUser]);
 
   // Extract unique departments
   const departments = ['All', ...Array.from(new Set(jobs.map(j => j.department)))];
@@ -112,14 +111,13 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
   });
 
   const handleOpenDetails = (job: Job) => {
-    setSelectedJob(job);
-    setIsDetailsModalOpen(true);
+    setDetailsJob(job);
   };
 
   const handleOpenApply = (job: Job) => {
-    setSelectedJob(job);
-    setIsDetailsModalOpen(false);
-    setIsApplyModalOpen(true);
+    // Clear details modal first to avoid overlapping modal backdrops
+    setDetailsJob(null);
+    setApplyJob(job);
   };
 
   const handleOpenGeneralApply = () => {
@@ -151,8 +149,8 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
       createdAt: new Date().toISOString().split('T')[0]
     };
 
-    setSelectedJob(generalJob);
-    setIsApplyModalOpen(true);
+    setDetailsJob(null);
+    setApplyJob(generalJob);
   };
 
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,7 +163,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedJob) return;
+    if (!applyJob) return;
 
     if (!name.trim() || !email.trim() || !phone.trim()) {
       alert('Please fill out all required contact fields (Full name, Email address, Phone number).');
@@ -180,7 +178,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
     if (apiUrl) {
       try {
         const formData = new FormData();
-        formData.append('job_id', selectedJob.id);
+        formData.append('job_id', applyJob.id);
         formData.append('applicant_name', name.trim());
         formData.append('applicant_email', email.trim());
         formData.append('applicant_phone', phone.trim());
@@ -209,8 +207,8 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
     // Save to local application state
     const createdAppId = applyToJob({
       id: backendId,
-      jobId: selectedJob.id,
-      jobTitle: selectedJob.title,
+      jobId: applyJob.id,
+      jobTitle: applyJob.title,
       applicantName: name.trim(),
       applicantEmail: email.trim(),
       applicantPhone: phone.trim(),
@@ -225,7 +223,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
     setActiveApplicationId(createdAppId);
     setSuccessAppId(createdAppId);
     setIsSubmitting(false);
-    setIsApplyModalOpen(false);
+    setApplyJob(null);
 
     // Reset fields
     setName('');
@@ -533,7 +531,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
 
       {/* JOB DETAILS MODAL */}
       <AnimatePresence>
-        {isDetailsModalOpen && selectedJob && (
+        {detailsJob && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -544,27 +542,27 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
               <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div>
                   <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
-                    {selectedJob.department}
+                    {detailsJob.department}
                   </span>
-                  <h2 className="text-2xl font-bold text-slate-900 mt-2">{selectedJob.title}</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 mt-2">{detailsJob.title}</h2>
                   <div className="flex flex-wrap gap-3 text-xs text-slate-500 mt-2">
                     <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} /> {selectedJob.location}
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} /> {detailsJob.location}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} /> {selectedJob.type}
+                      <Clock className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} /> {detailsJob.type}
                     </span>
-                    {selectedJob.salary && (
+                    {detailsJob.salary && (
                       <>
                         <span>•</span>
-                        <span className="font-semibold text-slate-700">{selectedJob.salary}</span>
+                        <span className="font-semibold text-slate-700">{detailsJob.salary}</span>
                       </>
                     )}
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsDetailsModalOpen(false)}
+                  onClick={() => setDetailsJob(null)}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
                 >
                   <X className="w-5 h-5" strokeWidth={1.5} />
@@ -574,15 +572,15 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
               {/* Role Description */}
               <div className="space-y-1.5">
                 <h3 className="text-xs font-bold text-slate-800">About the role</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">{selectedJob.description}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{detailsJob.description}</p>
               </div>
 
               {/* Responsibilities */}
-              {selectedJob.responsibilities && selectedJob.responsibilities.length > 0 && (
+              {detailsJob.responsibilities && detailsJob.responsibilities.length > 0 && (
                 <div className="space-y-1.5">
                   <h3 className="text-xs font-bold text-slate-800">Key responsibilities</h3>
                   <ul className="space-y-1.5 text-xs text-slate-600">
-                    {selectedJob.responsibilities.map((item, idx) => (
+                    {detailsJob.responsibilities.map((item, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" strokeWidth={1.5} />
                         <span>{item}</span>
@@ -596,7 +594,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
               <div className="space-y-1.5">
                 <h3 className="text-xs font-bold text-slate-800">Candidate qualifications</h3>
                 <ul className="space-y-1.5 text-xs text-slate-600">
-                  {selectedJob.requirements.map((req, idx) => (
+                  {detailsJob.requirements.map((req, idx) => (
                     <li key={idx} className="flex items-start gap-2">
                       <Check className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" strokeWidth={1.5} />
                       <span>{req}</span>
@@ -606,11 +604,11 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
               </div>
 
               {/* Benefits */}
-              {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+              {detailsJob.benefits && detailsJob.benefits.length > 0 && (
                 <div className="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <h3 className="text-xs font-bold text-slate-800">Perks and benefits</h3>
                   <ul className="space-y-1 text-xs text-slate-600 mt-2">
-                    {selectedJob.benefits.map((b, idx) => (
+                    {detailsJob.benefits.map((b, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <span className="text-slate-400 font-bold">•</span>
                         <span>{b}</span>
@@ -624,18 +622,18 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
               <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsDetailsModalOpen(false)}
+                  onClick={() => setDetailsJob(null)}
                   className="px-5 py-2.5 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-200 transition-all cursor-pointer"
                 >
                   Close
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleOpenApply(selectedJob)}
+                  onClick={() => handleOpenApply(detailsJob)}
                   className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Apply for this position</span>
-                  <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  <ArrowRight className="w-4 h-4 text-slate-300" strokeWidth={1.5} />
                 </button>
               </div>
             </motion.div>
@@ -645,7 +643,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
 
       {/* APPLICATION FORM MODAL */}
       <AnimatePresence>
-        {isApplyModalOpen && selectedJob && (
+        {applyJob && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -658,13 +656,13 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
                   <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
                     Application Form
                   </span>
-                  <h2 className="text-xl font-bold text-slate-900 mt-1.5">{selectedJob.title}</h2>
+                  <h2 className="text-xl font-bold text-slate-900 mt-1.5">{applyJob.title}</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {selectedJob.department} • {selectedJob.location}
+                    {applyJob.department} • {applyJob.location}
                   </p>
                 </div>
                 <button
-                  onClick={() => setIsApplyModalOpen(false)}
+                  onClick={() => setApplyJob(null)}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
                 >
                   <X className="w-5 h-5" strokeWidth={1.5} />
@@ -830,7 +828,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
                   <button
                     type="button"
                     disabled={isSubmitting}
-                    onClick={() => setIsApplyModalOpen(false)}
+                    onClick={() => setApplyJob(null)}
                     className="px-5 py-2.5 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-200 transition-all cursor-pointer"
                   >
                     Cancel
