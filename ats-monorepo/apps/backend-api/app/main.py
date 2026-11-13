@@ -104,6 +104,27 @@ CREATE TABLE IF NOT EXISTS coding_questions (
     test_cases JSONB,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Auto-Mark & Coding Grader schema migration
+ALTER TABLE public.job_posts 
+  ADD COLUMN IF NOT EXISTS auto_mark_cv BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS auto_grade_code BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS pass_threshold INTEGER DEFAULT 70,
+  ADD COLUMN IF NOT EXISTS grading_rubric TEXT,
+  ADD COLUMN IF NOT EXISTS coding_prompt TEXT,
+  ADD COLUMN IF NOT EXISTS reference_solution TEXT;
+
+ALTER TABLE public.applications 
+  ADD COLUMN IF NOT EXISTS cv_score INTEGER,
+  ADD COLUMN IF NOT EXISTS coding_score INTEGER,
+  ADD COLUMN IF NOT EXISTS total_score INTEGER,
+  ADD COLUMN IF NOT EXISTS evaluation_summary JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS auto_graded_at TIMESTAMPTZ;
+
+-- Adjust realistic Pretoria salary band for mid/junior role
+UPDATE public.job_posts 
+SET salary = 'R 35,000 - R 55,000 / month' 
+WHERE title ILIKE '%Full-Stack%' AND (salary LIKE '%65,000%' OR salary LIKE '%75,000%');
 """
 
 # Automatic database sync & initial admin account provisioning
@@ -151,7 +172,7 @@ def init_db():
 init_db()
 
 # Import routers
-from app.routers import auth, applications, stages, jobs
+from app.routers import auth, applications, stages, jobs, evaluation
 
 app = FastAPI(
     title="ATS Backend API",
@@ -173,6 +194,7 @@ app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(applications.router)
 app.include_router(stages.router)
+app.include_router(evaluation.router)
 
 @app.get("/")
 def health_check():

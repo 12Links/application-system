@@ -47,6 +47,35 @@ export const CandidatePipeline: React.FC = () => {
   const [gradeScore, setGradeScore] = useState<number>(90);
   const [manualFeedback, setManualFeedback] = useState('');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [isGrading, setIsGrading] = useState(false);
+
+  const handleTriggerAutoGrade = async (appId: string) => {
+    setIsGrading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
+      const res = await fetch(`${apiUrl}/auto-grade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: appId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.totalScore !== undefined) {
+          updateApplicationStage(
+            appId,
+            data.passed
+              ? (activeApp?.codingSubmission ? ApplicationStage.Interview : ApplicationStage.CodingAssessment)
+              : ApplicationStage.TechnicalScreening,
+            `Automated screening scored ${data.totalScore}%.`
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('Auto grade notice:', err);
+    } finally {
+      setIsGrading(false);
+    }
+  };
 
   const activeApp = applications.find(app => app.id === selectedAppId) || applications[0];
 
@@ -510,6 +539,79 @@ export const CandidatePipeline: React.FC = () => {
                     <p className="text-slate-700 leading-relaxed italic">"{activeApp.coverLetter}"</p>
                   </div>
                 )}
+
+                {/* Automated Screening & Code Grading Rules */}
+                <div className="bg-slate-50 rounded-2xl border border-slate-200/90 p-5 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Award className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-xs font-bold text-slate-800">Automated Screening & Evaluation</h4>
+                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/70 border border-indigo-200 px-2 py-0.5 rounded-full">
+                        Gemini 2.5 Flash Grader
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerAutoGrade(activeApp.id)}
+                      disabled={isGrading}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-60 cursor-pointer self-start sm:self-auto"
+                    >
+                      {isGrading ? (
+                        <>
+                          <Clock className="w-3.5 h-3.5 animate-spin" />
+                          <span>Evaluating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Run Auto-Evaluation</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">CV Score</span>
+                      <p className="text-xl font-black text-slate-900 mt-0.5">
+                        {activeApp.cv_score !== undefined ? `${activeApp.cv_score}%` : 'Pending'}
+                      </p>
+                    </div>
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Code Test Score</span>
+                      <p className="text-xl font-black text-slate-900 mt-0.5">
+                        {activeApp.coding_score !== undefined ? `${activeApp.coding_score}%` : (activeApp.codingSubmission?.score !== undefined ? `${activeApp.codingSubmission.score}%` : 'Not Taken')}
+                      </p>
+                    </div>
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Combined Total</span>
+                      <p className="text-xl font-black text-indigo-600 mt-0.5">
+                        {activeApp.total_score !== undefined ? `${activeApp.total_score}%` : (activeApp.cv_score !== undefined ? `${activeApp.cv_score}%` : 'Pending')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {activeApp.evaluation_summary && (
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-2.5 text-xs">
+                      {activeApp.evaluation_summary.reviewer_notes && (
+                        <div>
+                          <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">Technical Review Summary:</span>
+                          <p className="text-slate-700 mt-0.5">{activeApp.evaluation_summary.reviewer_notes}</p>
+                        </div>
+                      )}
+                      {activeApp.evaluation_summary.strengths?.length > 0 && (
+                        <div>
+                          <span className="font-bold text-emerald-600 uppercase tracking-wider text-[10px] block">Verified Strengths:</span>
+                          <ul className="list-disc list-inside text-slate-600 space-y-0.5 mt-0.5">
+                            {activeApp.evaluation_summary.strengths.map((str: string, idx: number) => (
+                              <li key={idx}>{str}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Coding Assessment Submission Review */}
                 {activeApp.codingSubmission ? (

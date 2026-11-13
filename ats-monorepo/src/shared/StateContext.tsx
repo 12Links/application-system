@@ -4,6 +4,7 @@ import { INITIAL_QUESTIONS, INITIAL_JOBS } from './mockData';
 
 interface StateContextType {
   jobs: Job[];
+  isJobsLoading: boolean;
   applications: Application[];
   notifications: Notification[];
   activeApplicationId: string | null;
@@ -50,27 +51,9 @@ interface StateContextType {
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Jobs: Grounded Pretoria roles + dynamic admin postings
-  const [jobs, setJobs] = useState<Job[]>(() => {
-    const saved = localStorage.getItem('ats_jobs');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Update any older graduate cohort titles to Class of 2026 / 2027
-          return parsed.map(j => {
-            if (j.id === 'job-103' || j.title.includes('2024 / 2025')) {
-              return { ...j, title: 'Graduate Software Developer (Class of 2026 / 2027)' };
-            }
-            return j;
-          });
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return INITIAL_JOBS;
-  });
+  // Jobs: Initialize as clean array [] to eliminate hydration counter flash
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isJobsLoading, setIsJobsLoading] = useState(true);
 
   // Applications (No mock applicants - clean slate)
   const [applications, setApplications] = useState<Application[]>(() => {
@@ -307,14 +290,31 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  // Fetch real jobs from backend API on mount if available
+  // Fetch real jobs and applications from backend API on mount if available
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
+    setIsJobsLoading(true);
     fetch(`${apiUrl}/jobs`)
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (Array.isArray(data)) {
           setJobs(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setIsJobsLoading(false);
+      });
+
+    fetch(`${apiUrl}/applications`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setApplications(prev => {
+            const backendIds = new Set(data.map((d: any) => d.id));
+            const localOnly = prev.filter(p => !backendIds.has(p.id));
+            return [...data, ...localOnly];
+          });
         }
       })
       .catch(() => {});
@@ -678,6 +678,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <StateContext.Provider
       value={{
         jobs,
+        isJobsLoading,
         applications,
         notifications,
         activeApplicationId,

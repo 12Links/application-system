@@ -41,6 +41,13 @@ class JobPost(Base):
     requirements = Column(Text, nullable=False)
     benefits = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
+    # Automated Screening & Grading Rules
+    auto_mark_cv = Column(Boolean, default=True)
+    auto_grade_code = Column(Boolean, default=True)
+    pass_threshold = Column(Integer, default=70)
+    grading_rubric = Column(Text, nullable=True)
+    coding_prompt = Column(Text, nullable=True)
+    reference_solution = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Application(Base):
@@ -62,6 +69,10 @@ class Application(Base):
     
     # Assessment & Interview Progress
     coding_score = Column(Integer, nullable=True)
+    cv_score = Column(Integer, nullable=True)
+    total_score = Column(Integer, nullable=True)
+    evaluation_summary = Column(Text, nullable=True)
+    auto_graded_at = Column(DateTime(timezone=True), nullable=True)
     coding_code = Column(Text, nullable=True)
     coding_feedback = Column(Text, nullable=True)
     interview_date = Column(String, nullable=True)

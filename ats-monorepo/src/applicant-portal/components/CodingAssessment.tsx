@@ -275,6 +275,14 @@ export const CodingAssessment: React.FC<CodingAssessmentProps> = ({ onNavigateTo
       testCasesTotal: question.testCases.length
     });
 
+    // Asynchronously notify backend evaluation engine
+    const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
+    fetch(`${apiUrl}/auto-grade`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId: activeApp.id, code })
+    }).catch(e => console.warn('Background auto-grading notice:', e));
+
     setAchievedScore(finalScore);
     setIsSubmitting(false);
     setSubmittedSuccess(true);

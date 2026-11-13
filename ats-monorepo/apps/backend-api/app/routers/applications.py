@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from supabase import create_client, Client
 import uuid
+import json
 from typing import Optional
 
 from app.core.database import get_db, settings
@@ -10,6 +11,78 @@ from app.models.models import Application, User, UserRole, AppStatus, JobPost
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
+
+def map_app_status_to_stage(status_val: str) -> str:
+    status_str = str(status_val).lower()
+    if "pending" in status_str:
+        return "Applied"
+    elif "under_review" in status_str:
+        return "Technical Screening"
+    elif "coding" in status_str:
+        return "Coding Assessment"
+    elif "interview" in status_str:
+        return "Interview"
+    elif "hired" in status_str or "contract" in status_str:
+        return "Offered"
+    elif "rejected" in status_str:
+        return "Rejected"
+    return "Applied"
+
+@router.get("")
+@router.get("/")
+def list_applications(db: Session = Depends(get_db)):
+    apps = db.query(Application).order_by(Application.created_at.desc()).all()
+    results = []
+    for app in apps:
+        job = db.query(JobPost).filter(JobPost.id == app.job_id).first()
+        summary = None
+        if app.evaluation_summary:
+            try:
+                summary = json.loads(app.evaluation_summary) if isinstance(app.evaluation_summary, str) else app.evaluation_summary
+            except Exception:
+                summary = None
+
+        stage = map_app_status_to_stage(app.status.value if hasattr(app.status, 'value') else str(app.status))
+
+        results.append({
+            "id": str(app.id),
+            "jobId": str(app.job_id),
+            "jobTitle": job.title if job else "Engineering Opening",
+            "applicantName": app.applicant_name or "Applicant",
+            "applicantEmail": app.applicant_email or "",
+            "applicantPhone": app.applicant_phone or "",
+            "portfolioUrl": app.portfolio_url,
+            "githubUrl": app.github_url,
+            "resumeUrl": app.resume_url,
+            "resumeFileName": "Resume_Document.pdf",
+            "experienceYears": app.experience_years or "1-3 Years",
+            "coverLetter": app.cover_letter,
+            "appliedAt": app.created_at.isoformat() if app.created_at else None,
+            "currentStage": stage,
+            "stageHistory": [
+                {
+                    "stage": stage,
+                    "updatedAt": app.created_at.isoformat() if app.created_at else "",
+                    "notes": "Application registered in recruitment database."
+                }
+            ],
+            "cv_score": app.cv_score,
+            "coding_score": app.coding_score,
+            "total_score": app.total_score,
+            "evaluation_summary": summary,
+            "auto_graded_at": app.auto_graded_at.isoformat() if app.auto_graded_at else None,
+            "interviewDate": app.interview_date,
+            "interviewTimeSlot": app.interview_time_slot,
+            "interviewNotes": app.interview_notes,
+            "codingSubmission": {
+                "code": app.coding_code or "",
+                "language": "typescript",
+                "submittedAt": app.auto_graded_at.isoformat() if app.auto_graded_at else "",
+                "score": app.coding_score or 0,
+                "feedback": app.coding_feedback or ""
+            } if app.coding_code else None
+        })
+    return results
 
 # Initialize Supabase Storage Client for Resumes
 supabase: Optional[Client] = None

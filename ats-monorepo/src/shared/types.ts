@@ -24,6 +24,13 @@ export interface Job {
   status?: JobStatus;
   featured?: boolean;
   createdAt: string;
+  // Automated Screening & Grading Configuration
+  auto_mark_cv?: boolean;
+  auto_grade_code?: boolean;
+  pass_threshold?: number;
+  grading_rubric?: string;
+  coding_prompt?: string;
+  reference_solution?: string;
 }
 
 export interface CodingSubmission {
@@ -58,6 +65,12 @@ export interface Application {
   interviewNotes?: string;
   codingSubmission?: CodingSubmission;
   adminFeedback?: string;
+  // Automated Evaluation & Grading Scores
+  cv_score?: number;
+  coding_score?: number;
+  total_score?: number;
+  evaluation_summary?: Record<string, any>;
+  auto_graded_at?: string;
 }
 
 export interface Notification {

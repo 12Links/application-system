@@ -21,6 +21,12 @@ class JobCreate(BaseModel):
     requirements: List[str]
     responsibilities: Optional[List[str]] = None
     benefits: Optional[List[str]] = None
+    auto_mark_cv: Optional[bool] = True
+    auto_grade_code: Optional[bool] = True
+    pass_threshold: Optional[int] = 70
+    grading_rubric: Optional[str] = None
+    coding_prompt: Optional[str] = None
+    reference_solution: Optional[str] = None
 
 @router.get("")
 def list_jobs(db: Session = Depends(get_db)):
@@ -41,6 +47,10 @@ def list_jobs(db: Session = Depends(get_db)):
             "responsibilities": j.responsibilities.split("\n") if hasattr(j, 'responsibilities') and j.responsibilities else [],
             "benefits": j.benefits.split("\n") if j.benefits else [],
             "status": "Active" if j.is_active else "Closed",
+            "auto_mark_cv": j.auto_mark_cv if hasattr(j, 'auto_mark_cv') else True,
+            "auto_grade_code": j.auto_grade_code if hasattr(j, 'auto_grade_code') else True,
+            "pass_threshold": j.pass_threshold if hasattr(j, 'pass_threshold') else 70,
+            "grading_rubric": j.grading_rubric if hasattr(j, 'grading_rubric') else None,
             "createdAt": str(j.created_at).split(" ")[0] if j.created_at else ""
         })
     return results
@@ -59,6 +69,12 @@ def create_job(job_data: JobCreate, db: Session = Depends(get_db)):
         description=job_data.description,
         requirements="\n".join(job_data.requirements),
         benefits="\n".join(job_data.benefits) if job_data.benefits else None,
+        auto_mark_cv=job_data.auto_mark_cv if job_data.auto_mark_cv is not None else True,
+        auto_grade_code=job_data.auto_grade_code if job_data.auto_grade_code is not None else True,
+        pass_threshold=job_data.pass_threshold if job_data.pass_threshold is not None else 70,
+        grading_rubric=job_data.grading_rubric,
+        coding_prompt=job_data.coding_prompt,
+        reference_solution=job_data.reference_solution,
         is_active=True
     )
     db.add(new_job)

@@ -27,7 +27,7 @@ interface JobBoardProps {
 }
 
 export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
-  const { jobs, applyToJob, setActiveApplicationId, currentUser, applications } = useAppState();
+  const { jobs, isJobsLoading, applyToJob, setActiveApplicationId, currentUser, applications } = useAppState();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
@@ -114,10 +114,16 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
     setDetailsJob(job);
   };
 
-  const handleOpenApply = (job: Job) => {
+  const handleOpenApply = (job: Job, fromDetails: boolean = false) => {
     // Clear details modal first to avoid overlapping modal backdrops
     setDetailsJob(null);
-    setApplyJob(job);
+    if (fromDetails) {
+      setTimeout(() => {
+        setApplyJob(job);
+      }, 50);
+    } else {
+      setApplyJob(job);
+    }
   };
 
   const handleOpenGeneralApply = () => {
@@ -198,6 +204,15 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
         if (response.ok) {
           const data = await response.json();
           backendId = data.application_id || data.id;
+
+          // Asynchronously trigger automated screening & grading
+          if (backendId) {
+            fetch(`${apiUrl}/auto-grade`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ applicationId: backendId })
+            }).catch(e => console.warn('Background auto-grading notice:', e));
+          }
         }
       } catch (err) {
         console.warn('Backend upload skipped, persisting locally:', err);
@@ -290,7 +305,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-700/80 rounded-full text-xs font-medium text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Careers at 12 Links Future Technologies
+              Pretoria Head Office • Engineering
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
@@ -324,8 +339,33 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
         </section>
       )}
 
-      {/* When NO vacancies exist: Hide broken search filters and offer clean Open Application / CV Drop */}
-      {jobs.length === 0 ? (
+      {/* SKELETON LOADING STATE: Eliminates hydration counter flash */}
+      {isJobsLoading ? (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+            <div className="h-4 bg-slate-200 rounded-md w-48 animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs animate-pulse space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="h-4 bg-slate-200 rounded w-24"></div>
+                  <div className="h-4 bg-slate-100 rounded w-16"></div>
+                </div>
+                <div className="h-6 bg-slate-200 rounded w-3/4"></div>
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 bg-slate-100 rounded w-full"></div>
+                  <div className="h-3 bg-slate-100 rounded w-5/6"></div>
+                </div>
+                <div className="pt-4 border-t border-slate-100 flex gap-2">
+                  <div className="h-9 bg-slate-100 rounded-xl flex-1"></div>
+                  <div className="h-9 bg-slate-200 rounded-xl flex-1"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : jobs.length === 0 ? (
         <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-5 shadow-xs">
           <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
             <Briefcase className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
@@ -532,7 +572,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
       {/* JOB DETAILS MODAL */}
       <AnimatePresence>
         {detailsJob && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -629,7 +669,7 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleOpenApply(detailsJob)}
+                  onClick={() => handleOpenApply(detailsJob, true)}
                   className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Apply for this position</span>
