@@ -55,13 +55,26 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isJobsLoading, setIsJobsLoading] = useState(true);
 
-  // Applications (No mock applicants - clean slate)
+  // Applications (Clean slate: completely remove mock candidates)
   const [applications, setApplications] = useState<Application[]>(() => {
     const saved = localStorage.getItem('ats_applications');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          // Strictly purge mock candidates
+          const clean = parsed.filter(app => {
+            const id = (app.id || '').toUpperCase();
+            const email = (app.applicantEmail || '').toLowerCase();
+            const name = (app.applicantName || '').toLowerCase().trim();
+            const isMockId = /^APP-80[0-9]$/.test(id) || id.startsWith('APP-DEMO');
+            const isMockEmail = email.includes('@example.com') || email.includes('mock');
+            const isMockName = ['thabo mokoena', 'jessica vance', 'sipho ndlovu', "liam o'connor", 'lerato khumalo'].includes(name);
+            return !isMockId && !isMockEmail && !isMockName;
+          });
+          localStorage.setItem('ats_applications', JSON.stringify(clean));
+          return clean;
+        }
       } catch (e) {
         console.error(e);
       }
@@ -83,12 +96,17 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return INITIAL_QUESTIONS;
   });
 
-  // Notifications
+  // Notifications (purge notifications for mock candidates)
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem('ats_notifications');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(n => !/^APP-80[0-9]$/i.test(n.applicationId) && !n.applicationId?.startsWith('user-demo'));
+          localStorage.setItem('ats_notifications', JSON.stringify(clean));
+          return clean;
+        }
       } catch (e) {
         console.error(e);
       }
@@ -98,16 +116,28 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Active Application ID
   const [activeApplicationId, setActiveApplicationIdState] = useState<string | null>(() => {
-    return localStorage.getItem('ats_active_app_id') || null;
+    const saved = localStorage.getItem('ats_active_app_id');
+    if (saved && (/^APP-80[0-9]$/i.test(saved) || saved.toUpperCase().startsWith('APP-DEMO'))) {
+      localStorage.removeItem('ats_active_app_id');
+      return null;
+    }
+    return saved || null;
   });
 
-  // Registered Users
+  // Registered Users (purge mock demo accounts)
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('ats_users');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(u => {
+            const email = (u.email || '').toLowerCase();
+            return !email.includes('@example.com') && !email.includes('demo');
+          });
+          localStorage.setItem('ats_users', JSON.stringify(clean));
+          return clean;
+        }
       } catch (e) {
         console.error(e);
       }
@@ -309,12 +339,18 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetch(`${apiUrl}/applications`)
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setApplications(prev => {
-            const backendIds = new Set(data.map((d: any) => d.id));
-            const localOnly = prev.filter(p => !backendIds.has(p.id));
-            return [...data, ...localOnly];
+        if (Array.isArray(data)) {
+          const cleanBackend = data.filter((app: any) => {
+            const id = (app.id || '').toUpperCase();
+            const email = (app.applicantEmail || '').toLowerCase();
+            const name = (app.applicantName || '').toLowerCase().trim();
+            const isMockId = /^APP-80[0-9]$/.test(id) || id.startsWith('APP-DEMO');
+            const isMockEmail = email.includes('@example.com') || email.includes('mock');
+            const isMockName = ['thabo mokoena', 'jessica vance', 'sipho ndlovu', "liam o'connor", 'lerato khumalo'].includes(name);
+            return !isMockId && !isMockEmail && !isMockName;
           });
+          setApplications(cleanBackend);
+          localStorage.setItem('ats_applications', JSON.stringify(cleanBackend));
         }
       })
       .catch(() => {});

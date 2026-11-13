@@ -26,7 +26,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Edit3
+  Edit3,
+  RotateCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -214,8 +215,20 @@ export const CandidatePipeline: React.FC = () => {
           </select>
         </div>
 
-        {/* View Toggle */}
+        {/* View Toggle & Sync */}
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl self-start md:self-auto">
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('ats_applications');
+              window.location.reload();
+            }}
+            className="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-all cursor-pointer flex items-center gap-1"
+            title="Refresh from remote database & purge local cache"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sync DB</span>
+          </button>
           <button
             onClick={() => setViewMode('kanban')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
