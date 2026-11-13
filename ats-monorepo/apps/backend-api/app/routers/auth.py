@@ -29,7 +29,7 @@ def create_access_token(data: dict):
 
 # Schemas
 class UserCreate(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     role: UserRole = UserRole.applicant # Default to applicant
 

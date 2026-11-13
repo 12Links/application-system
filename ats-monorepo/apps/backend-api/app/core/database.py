@@ -41,12 +41,12 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# SQLAlchemy 2.0 requires modern driver dialect for PostgreSQL
+# SQLAlchemy 2.0 requires modern driver dialect for PostgreSQL (using robust psycopg2-binary)
 raw_db_url = settings.DATABASE_URL
 if raw_db_url.startswith("postgres://"):
-    raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg://", 1)
+    raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg2://", 1)
 elif raw_db_url.startswith("postgresql://") and not raw_db_url.startswith("postgresql+"):
-    raw_db_url = raw_db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    raw_db_url = raw_db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 connect_args = {"check_same_thread": False} if raw_db_url.startswith("sqlite") else {}
 engine = create_engine(raw_db_url, connect_args=connect_args)
