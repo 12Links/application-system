@@ -1,3 +1,13 @@
+import sys
+import os
+
+# Ensure the app package and root directory are always on sys.path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+for p in [BASE_DIR, PARENT_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
@@ -12,22 +22,40 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
-            admin_email = settings.ADMIN_EMAIL
-            admin_pass = settings.ADMIN_PASSWORD
-            if admin_email and admin_pass:
-                existing_admin = db.query(models.User).filter(models.User.email == admin_email).first()
+            from app.routers.auth import get_password_hash
+            
+            # List of admin credentials to guarantee access
+            admin_accounts = [
+                {
+                    "email": (settings.ADMIN_EMAIL or "admin@12links.co.za").strip().lower(),
+                    "password": settings.ADMIN_PASSWORD or "Admin12links2026!",
+                    "name": "Recruitment Administrator"
+                },
+                {
+                    "email": "info@12links.co.za",
+                    "password": "Admin@12links",
+                    "name": "12 Links Administrator"
+                }
+            ]
+            
+            for acc in admin_accounts:
+                existing_admin = db.query(models.User).filter(models.User.email == acc["email"]).first()
                 if not existing_admin:
-                    from app.routers.auth import get_password_hash
                     admin = models.User(
                         id=uuid.uuid4(),
-                        email=admin_email,
-                        password_hash=get_password_hash(admin_pass),
-                        name="Recruitment Administrator",
+                        email=acc["email"],
+                        password_hash=get_password_hash(acc["password"]),
+                        name=acc["name"],
                         role=models.UserRole.admin
                     )
                     db.add(admin)
                     db.commit()
-                    print(f"Successfully provisioned admin account in Supabase: {admin_email}")
+                    print(f"Successfully provisioned admin account in Supabase: {acc['email']}")
+                else:
+                    # Ensure role is admin
+                    if existing_admin.role != models.UserRole.admin:
+                        existing_admin.role = models.UserRole.admin
+                        db.commit()
         finally:
             db.close()
     except Exception as e:
@@ -36,7 +64,7 @@ def init_db():
 init_db()
 
 # Import routers
-from app.routers import auth, applications, stages
+from app.routers import auth, applications, stages, jobs
 
 app = FastAPI(
     title="ATS Backend API",
@@ -55,6 +83,7 @@ app.add_middleware(
 
 # Connect the routers
 app.include_router(auth.router)
+app.include_router(jobs.router)
 app.include_router(applications.router)
 app.include_router(stages.router)
 

@@ -50,18 +50,21 @@ interface StateContextType {
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Jobs (Default to authentic 12 Links Pretoria engineering vacancies)
+  // Jobs: Clean slate (Zero mock data). Created by administrators in the Admin portal.
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('ats_jobs');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          // Filter out any leftover mock jobs
+          return parsed.filter(j => !['job-101', 'job-102', 'job-103'].includes(j.id));
+        }
       } catch (e) {
         console.error(e);
       }
     }
-    return INITIAL_JOBS;
+    return [];
   });
 
   // Applications (No mock applicants - clean slate)
@@ -299,6 +302,19 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
+  // Fetch real jobs from backend API on mount if available
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
+    fetch(`${apiUrl}/jobs`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setJobs(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Job Management
   const addJob = (jobData: Omit<Job, 'id' | 'createdAt'>) => {
     const newJob: Job = {
@@ -308,6 +324,25 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString().split('T')[0]
     };
     setJobs(prev => [newJob, ...prev]);
+
+    // Sync with backend API
+    const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
+    fetch(`${apiUrl}/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: jobData.title,
+        department: jobData.department,
+        location: jobData.location,
+        type: jobData.type,
+        salary: jobData.salary,
+        experience: jobData.experience,
+        description: jobData.description,
+        requirements: jobData.requirements,
+        responsibilities: jobData.responsibilities,
+        benefits: jobData.benefits
+      })
+    }).catch(() => {});
   };
 
   const updateJob = (id: string, updatedFields: Partial<Job>) => {
