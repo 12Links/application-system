@@ -5,7 +5,7 @@ import { CandidatePipeline } from './components/CandidatePipeline';
 import { JobPostingsManager } from './components/JobPostingsManager';
 import { CodingQuestionsManager } from './components/CodingQuestionsManager';
 import { AdminLogin } from './components/AdminLogin';
-import { Users, Briefcase, FileCode, Layers, MapPin, LogOut } from 'lucide-react';
+import { Users, Briefcase, FileCode, Layers, MapPin, LogOut, Calendar, CheckCircle2 } from 'lucide-react';
 import { CompanyLogo } from '../shared/CompanyLogo';
 
 interface AdminPortalProps {
@@ -162,7 +162,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateToPublic }) 
 
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex items-center gap-4 text-left col-span-2 lg:col-span-1">
             <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5" />
+              <CheckCircle2 className="w-5 h-5" strokeWidth={1.5} />
             </div>
             <div>
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Offers Extended</p>

@@ -308,7 +308,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetch(`${apiUrl}/jobs`)
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setJobs(data);
         }
       })

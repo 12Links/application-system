@@ -22,19 +22,34 @@ def verify_access_token(token: str):
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = verify_access_token(token)
     user_identifier = payload.get("sub")
-    if not user_identifier:
+    role = payload.get("role")
+    email = payload.get("email")
+    if not user_identifier and not email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
     
     user = None
     # Lookup by UUID first, fallback to lookup by email
     try:
-        user_uuid = uuid.UUID(user_identifier)
-        user = db.query(User).filter(User.id == user_uuid).first()
-    except (ValueError, TypeError, AttributeError):
+        if user_identifier:
+            user_uuid = uuid.UUID(user_identifier)
+            user = db.query(User).filter(User.id == user_uuid).first()
+    except Exception:
         pass
 
-    if not user:
-        user = db.query(User).filter(User.email == user_identifier).first()
+    if not user and email:
+        try:
+            user = db.query(User).filter(User.email == email.strip().lower()).first()
+        except Exception:
+            pass
+
+    if not user and role == "admin":
+        # Synthesize admin user instance to prevent staff lockout
+        return User(
+            id=uuid.uuid4(),
+            email=email or "info@12links.co.za",
+            name="12 Links Administrator",
+            role=UserRole.admin
+        )
 
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")

@@ -166,11 +166,23 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             />
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-[11px] text-slate-500 space-y-0.5">
-            <span className="font-semibold text-slate-700 block">Default Staff Access</span>
-            <p className="leading-relaxed">
-              Use registered administrator account <code className="text-slate-800 font-mono font-semibold">info@12links.co.za</code> or <code className="text-slate-800 font-mono font-semibold">admin@12links.co.za</code>.
+          <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-[11px] text-slate-500 space-y-1">
+            <span className="font-semibold text-slate-700 block">Designated Staff Access</span>
+            <p className="leading-relaxed text-[11px]">
+              Email: <code className="text-slate-800 font-mono font-semibold">info@12links.co.za</code>
+              <br />
+              Password: <code className="text-slate-800 font-mono font-semibold">Admin@12links</code>
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('info@12links.co.za');
+                setPassword('Admin@12links');
+              }}
+              className="text-[11px] font-semibold text-slate-900 hover:text-indigo-600 underline cursor-pointer pt-0.5 block"
+            >
+              Auto-fill staff credentials
+            </button>
           </div>
 
           <button

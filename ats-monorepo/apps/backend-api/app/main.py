@@ -8,18 +8,111 @@ for p in [BASE_DIR, PARENT_DIR]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 import uuid
 
 # Import the database engine and models to create the tables automatically
-from app.core.database import engine, Base, SessionLocal, settings
+from app.core.database import engine, Base, SessionLocal, settings, get_db
 from app.models import models
+
+RAW_INIT_SQL = """
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+        CREATE TYPE userrole AS ENUM ('admin', 'applicant');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'appstatus') THEN
+        CREATE TYPE appstatus AS ENUM ('pending', 'under_review', 'coding_round', 'interview', 'contract_pending', 'hired', 'rejected');
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
+    phone VARCHAR(50),
+    role userrole NOT NULL DEFAULT 'applicant',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS job_posts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    department VARCHAR(100) DEFAULT 'Engineering',
+    location VARCHAR(150) DEFAULT 'Pretoria, South Africa',
+    type VARCHAR(50) DEFAULT 'Full-time',
+    salary VARCHAR(100),
+    experience VARCHAR(50) DEFAULT '3+ Years',
+    description TEXT NOT NULL,
+    requirements TEXT NOT NULL,
+    benefits TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID NOT NULL REFERENCES job_posts(id) ON DELETE CASCADE,
+    applicant_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status appstatus NOT NULL DEFAULT 'pending',
+    applicant_name VARCHAR(255),
+    applicant_email VARCHAR(255),
+    applicant_phone VARCHAR(50),
+    portfolio_url TEXT,
+    github_url TEXT,
+    resume_url TEXT,
+    cover_letter TEXT,
+    experience_years VARCHAR(50),
+    coding_score INT,
+    coding_code TEXT,
+    coding_feedback TEXT,
+    interview_date VARCHAR(50),
+    interview_time_slot VARCHAR(50),
+    interview_notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS contracts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    application_id UUID UNIQUE NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+    contract_url TEXT NOT NULL,
+    is_signed BOOLEAN DEFAULT false,
+    signed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS coding_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    difficulty VARCHAR(20) DEFAULT 'Easy',
+    description TEXT NOT NULL,
+    starter_templates JSONB,
+    test_cases JSONB,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+"""
 
 # Automatic database sync & initial admin account provisioning
 def init_db():
     try:
-        Base.metadata.create_all(bind=engine)
+        with engine.begin() as conn:
+            conn.execute(text(RAW_INIT_SQL))
+        print("Database schema successfully verified and initialized.")
+    except Exception as ddl_err:
+        print(f"Direct DDL notice: {ddl_err}")
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as meta_err:
+            print(f"Metadata create notice: {meta_err}")
+
+    # Provision administrator accounts
+    try:
         db = SessionLocal()
         try:
             from app.routers.auth import get_password_hash
@@ -90,3 +183,21 @@ app.include_router(stages.router)
 @app.get("/")
 def health_check():
     return {"status": "ok", "message": "ATS API is running cleanly"}
+
+@app.get("/db-status")
+def db_status(db: Session = Depends(get_db)):
+    try:
+        user_count = db.query(models.User).count()
+        job_count = db.query(models.JobPost).count()
+        admin_emails = [u.email for u in db.query(models.User).filter(models.User.role == models.UserRole.admin).all()]
+        return {
+            "status": "connected",
+            "users_count": user_count,
+            "jobs_count": job_count,
+            "admins_registered": admin_emails
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
