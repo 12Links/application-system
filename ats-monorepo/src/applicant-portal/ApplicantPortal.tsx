@@ -4,11 +4,12 @@ import { JobBoard } from './components/JobBoard';
 import { ProgressTracker } from './components/ProgressTracker';
 import { CodingAssessment } from './components/CodingAssessment';
 import { InterviewScheduler } from './components/InterviewScheduler';
+import { CandidateProfileModal } from './components/CandidateProfileModal';
 import { AuthPage } from '../shared/AuthPage';
 import {
   Briefcase,
-  Clipboard,
-  FileCode,
+  Activity,
+  Code2,
   Calendar,
   Bell,
   MapPin,
@@ -37,6 +38,21 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
   const [activeTab, setActiveTab] = useState<'jobs' | 'tracker' | 'coding' | 'scheduler'>('jobs');
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const getInitials = (fullName?: string, email?: string) => {
+    if (fullName && fullName.trim()) {
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'CA';
+  };
 
   const unreadNotifs = notifications.filter(n => !n.read);
 
@@ -78,7 +94,7 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
               }`}
             >
               <Briefcase className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
-              Open Vacancies
+              Open Positions
             </button>
             <button
               id="tracker-tab-btn"
@@ -87,35 +103,29 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
                 activeTab === 'tracker' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Clipboard className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
-              Track Application
+              <Activity className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
+              Track Progress
             </button>
-
-            {/* Assessment and Interview tabs only surface when applicant has an active profile */}
-            {activeApplicationId && (
-              <>
-                <button
-                  id="coding-tab-btn"
-                  onClick={() => setActiveTab('coding')}
-                  className={`px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                    activeTab === 'coding' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <FileCode className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
-                  Coding Assessment
-                </button>
-                <button
-                  id="scheduler-tab-btn"
-                  onClick={() => setActiveTab('scheduler')}
-                  className={`px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                    activeTab === 'scheduler' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
-                  Interview Scheduler
-                </button>
-              </>
-            )}
+            <button
+              id="coding-tab-btn"
+              onClick={() => setActiveTab('coding')}
+              className={`px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'coding' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Code2 className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
+              Coding Assessment
+            </button>
+            <button
+              id="scheduler-tab-btn"
+              onClick={() => setActiveTab('scheduler')}
+              className={`px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'scheduler' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
+              Interview Scheduler
+            </button>
           </nav>
 
           {/* Right Area: Alerts Bell & User Profile */}
@@ -191,10 +201,20 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
             {/* Candidate Authentication Status */}
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="hidden sm:block text-right">
-                  <p className="text-xs font-semibold text-slate-800 line-clamp-1">{currentUser.name || currentUser.email}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Candidate</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-2xl hover:bg-slate-100 transition-all border border-slate-200/80 cursor-pointer text-left"
+                  title="Open candidate profile and developer credentials"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                    {getInitials(currentUser.name, currentUser.email)}
+                  </div>
+                  <div className="hidden sm:block">
+                    <p className="text-xs font-semibold text-slate-800 line-clamp-1">{currentUser.name || currentUser.email}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Candidate Profile</p>
+                  </div>
+                </button>
                 <button
                   onClick={signOut}
                   className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200/80 rounded-xl transition-all cursor-pointer"
@@ -223,7 +243,7 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
               activeTab === 'jobs' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
             }`}
           >
-            Vacancies
+            Positions
           </button>
           <button
             onClick={() => setActiveTab('tracker')}
@@ -233,26 +253,22 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
           >
             Track Status
           </button>
-          {activeApplicationId && (
-            <>
-              <button
-                onClick={() => setActiveTab('coding')}
-                className={`flex-1 min-w-[70px] text-center p-2 rounded-xl text-[11px] font-semibold ${
-                  activeTab === 'coding' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
-                }`}
-              >
-                Coding
-              </button>
-              <button
-                onClick={() => setActiveTab('scheduler')}
-                className={`flex-1 min-w-[70px] text-center p-2 rounded-xl text-[11px] font-semibold ${
-                  activeTab === 'scheduler' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
-                }`}
-              >
-                Interview
-              </button>
-            </>
-          )}
+          <button
+            onClick={() => setActiveTab('coding')}
+            className={`flex-1 min-w-[70px] text-center p-2 rounded-xl text-[11px] font-semibold ${
+              activeTab === 'coding' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+            }`}
+          >
+            Coding
+          </button>
+          <button
+            onClick={() => setActiveTab('scheduler')}
+            className={`flex-1 min-w-[70px] text-center p-2 rounded-xl text-[11px] font-semibold ${
+              activeTab === 'scheduler' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+            }`}
+          >
+            Interview
+          </button>
         </div>
       </header>
 
@@ -260,6 +276,17 @@ export const ApplicantPortal: React.FC<ApplicantPortalProps> = ({ onNavigateToAd
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {renderActiveTab()}
       </main>
+
+      {/* Candidate Profile Drawer / Modal */}
+      <AnimatePresence>
+        {isProfileModalOpen && (
+          <CandidateProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            onNavigateToTab={tab => setActiveTab(tab as any)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Auth Modal for Applicants */}
       <AnimatePresence>

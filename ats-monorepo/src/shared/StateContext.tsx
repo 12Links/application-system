@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Job, Application, ApplicationStage, Notification, CodingSubmission, User, CodingQuestion, JobStatus } from './types';
-import { INITIAL_QUESTIONS } from './mockData';
+import { INITIAL_QUESTIONS, INITIAL_JOBS } from './mockData';
 
 interface StateContextType {
   jobs: Job[];
@@ -13,6 +13,7 @@ interface StateContextType {
   signUp: (userData: Omit<User, 'id'>) => { success: boolean; message: string };
   signIn: (email: string, password?: string) => { success: boolean; message: string };
   signOut: () => void;
+  updateUserProfile: (updatedFields: Partial<User>) => void;
   addJob: (job: Omit<Job, 'id' | 'createdAt'>) => void;
   updateJob: (id: string, updatedFields: Partial<Job>) => void;
   deleteJob: (id: string) => void;
@@ -49,18 +50,18 @@ interface StateContextType {
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Jobs (No mock jobs - clean slate)
+  // Jobs (Default to authentic 12 Links Pretoria engineering vacancies)
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('ats_jobs');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return [];
+    return INITIAL_JOBS;
   });
 
   // Applications (No mock applicants - clean slate)
@@ -174,6 +175,39 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('ats_questions', JSON.stringify(questions));
   }, [questions]);
 
+  // Welcome notification seeding for newly registered or active candidates
+  useEffect(() => {
+    if (currentUser && notifications.length === 0) {
+      const welcomeId = `notif-${Date.now()}`;
+      setNotifications([
+        {
+          id: welcomeId,
+          applicationId: currentUser.id,
+          title: 'Welcome to 12 Links',
+          message: 'Profile created — complete your CV upload or apply to an open role to begin.',
+          type: 'info',
+          createdAt: new Date().toISOString(),
+          read: false
+        }
+      ]);
+    }
+  }, [currentUser, notifications.length]);
+
+  // Auto-bind active application to current user's latest submission
+  useEffect(() => {
+    if (currentUser) {
+      const userApps = applications.filter(
+        app => app.applicantEmail.toLowerCase() === currentUser.email.toLowerCase()
+      );
+      if (userApps.length > 0) {
+        const isCurrentValid = userApps.some(app => app.id.toLowerCase() === activeApplicationId?.toLowerCase());
+        if (!isCurrentValid) {
+          setActiveApplicationId(userApps[0].id);
+        }
+      }
+    }
+  }, [currentUser, applications, activeApplicationId]);
+
   // Auth Functions
   const signUp = (userData: Omit<User, 'id'>) => {
     const existing = users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
@@ -194,6 +228,13 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (existingApp) {
       setActiveApplicationId(existingApp.id);
     }
+
+    addNotification(
+      newUser.id,
+      'Welcome to 12 Links',
+      'Profile created — complete your CV upload or apply to an open role to begin.',
+      'info'
+    );
 
     return { success: true, message: 'Profile created successfully!' };
   };
@@ -220,6 +261,42 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const signOut = () => {
     setCurrentUser(null);
+  };
+
+  const updateUserProfile = (updatedFields: Partial<User>) => {
+    if (!currentUser) return;
+    const updatedUser: User = {
+      ...currentUser,
+      ...updatedFields
+    };
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(u => (u.id === updatedUser.id ? updatedUser : u)));
+
+    // Synchronize applicant fields across any submitted applications
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.applicantEmail.toLowerCase() === updatedUser.email.toLowerCase()) {
+          return {
+            ...app,
+            applicantName: updatedUser.name || app.applicantName,
+            applicantPhone: updatedUser.phone || app.applicantPhone,
+            portfolioUrl: updatedUser.portfolioUrl ?? app.portfolioUrl,
+            githubUrl: updatedUser.githubUrl ?? app.githubUrl,
+            linkedinUrl: updatedUser.linkedinUrl ?? app.linkedinUrl,
+            resumeFileName: updatedUser.resumeFileName ?? app.resumeFileName,
+            resumeUrl: updatedUser.resumeUrl ?? app.resumeUrl
+          };
+        }
+        return app;
+      })
+    );
+
+    addNotification(
+      updatedUser.id,
+      'Profile Updated',
+      'Your candidate profile and developer credentials have been saved.',
+      'success'
+    );
   };
 
   // Job Management
@@ -570,6 +647,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         signUp,
         signIn,
         signOut,
+        updateUserProfile,
         addJob,
         updateJob,
         deleteJob,

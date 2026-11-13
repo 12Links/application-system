@@ -90,19 +90,38 @@ export const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({ onNaviga
 
   if (!isEligible && !activeApp.interviewDate) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
-        <AlertCircle className="w-14 h-14 text-amber-500 mx-auto" />
-        <h3 className="text-lg font-bold text-slate-800">Interview Scheduling Locked</h3>
-        <p className="text-xs text-slate-500">
-          Your current application stage is{' '}
-          <span className="px-2 py-0.5 bg-slate-100 border rounded font-semibold text-slate-700">
-            {activeApp.currentStage}
-          </span>
-          .
-        </p>
-        <p className="text-[11px] text-slate-400">
-          This round becomes accessible once your Coding Assessment is completed and approved.
-        </p>
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-5">
+        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200/60">
+          <Calendar className="w-6 h-6" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-bold text-slate-900 tracking-tight">Interview Round Pending</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            Your application for <strong>{activeApp.jobTitle}</strong> is currently in the{' '}
+            <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded font-semibold text-slate-800">
+              {activeApp.currentStage}
+            </span>{' '}
+            stage. Technical interview slots will be made available once your previous stage evaluation is approved.
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('tracker')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Track Application Progress</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('coding')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          >
+            <span>Coding Assessment</span>
+          </button>
+        </div>
       </div>
     );
   }

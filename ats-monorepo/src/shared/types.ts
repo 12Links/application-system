@@ -87,5 +87,7 @@ export interface User {
   portfolioUrl?: string;
   githubUrl?: string;
   linkedinUrl?: string;
+  resumeFileName?: string;
+  resumeUrl?: string;
   password?: string;
 }

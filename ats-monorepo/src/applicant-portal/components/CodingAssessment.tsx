@@ -34,6 +34,7 @@ export const CodingAssessment: React.FC<CodingAssessmentProps> = ({ onNavigateTo
   const [testResults, setTestResults] = useState<{ passed: boolean; name: string; got: string; expected: string }[] | null>(null);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
   const [achievedScore, setAchievedScore] = useState(0);
+  const [isPracticeMode, setIsPracticeMode] = useState(false);
 
   const activeApp = applications.find(
     app =>
@@ -105,21 +106,40 @@ export const CodingAssessment: React.FC<CodingAssessmentProps> = ({ onNavigateTo
   const isEligible = activeApp.currentStage === ApplicationStage.CodingAssessment;
   const isAlreadyDone = !!activeApp.codingSubmission;
 
-  if (!isEligible && !isAlreadyDone) {
+  if (!isEligible && !isAlreadyDone && !isPracticeMode) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
-        <AlertCircle className="w-14 h-14 text-amber-500 mx-auto" />
-        <h3 className="text-lg font-bold text-slate-800">Assessment Locked</h3>
-        <p className="text-xs text-slate-500">
-          Your current application stage is{' '}
-          <span className="px-2 py-0.5 bg-slate-100 border rounded font-semibold text-slate-700">
-            {activeApp.currentStage}
-          </span>
-          .
-        </p>
-        <p className="text-[11px] text-slate-400">
-          The hiring team will unlock the technical assessment round once initial screening is approved.
-        </p>
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-5">
+        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200/60">
+          <Clock className="w-6 h-6" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-bold text-slate-900 tracking-tight">Assessment Stage Pending</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            Your application for <strong>{activeApp.jobTitle}</strong> is currently in the{' '}
+            <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded font-semibold text-slate-800">
+              {activeApp.currentStage}
+            </span>{' '}
+            stage. The technical assessment will be unlocked once initial engineering screening is confirmed.
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('tracker')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Track Application Status</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsPracticeMode(true)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          >
+            <span>Try Sandbox Practice Challenge</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -237,6 +257,13 @@ export const CodingAssessment: React.FC<CodingAssessmentProps> = ({ onNavigateTo
     }
 
     const testPassed = Math.round((finalScore / 100) * question.testCases.length);
+
+    if (isPracticeMode) {
+      setAchievedScore(finalScore);
+      setSubmittedSuccess(true);
+      setIsSubmitting(false);
+      return;
+    }
 
     submitCoding(activeApp.id, {
       code,

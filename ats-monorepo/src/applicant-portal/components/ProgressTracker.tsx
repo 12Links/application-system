@@ -28,15 +28,27 @@ interface ProgressTrackerProps {
 }
 
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTab }) => {
-  const { applications, activeApplicationId, setActiveApplicationId } = useAppState();
+  const { applications, activeApplicationId, setActiveApplicationId, currentUser } = useAppState();
   const [searchQuery, setSearchQuery] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showManualLookup, setShowManualLookup] = useState(false);
+
+  const userApps = currentUser
+    ? applications.filter(app => app.applicantEmail.toLowerCase() === currentUser.email.toLowerCase())
+    : [];
 
   const activeApp = applications.find(
     app =>
       app.id.toLowerCase() === activeApplicationId?.toLowerCase() ||
       app.applicantEmail.toLowerCase() === activeApplicationId?.toLowerCase()
-  );
+  ) || (currentUser && userApps.length > 0 ? userApps[0] : null);
+
+  // Auto-sync active application ID if missing but user has applications
+  React.useEffect(() => {
+    if (currentUser && userApps.length > 0 && !activeApplicationId) {
+      setActiveApplicationId(userApps[0].id);
+    }
+  }, [currentUser, userApps, activeApplicationId, setActiveApplicationId]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +66,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
     if (found) {
       setActiveApplicationId(found.id);
       setErrorMsg('');
+      setShowManualLookup(false);
     } else {
       setErrorMsg('No application found with that ID or email. Please check your reference and try again.');
     }
@@ -113,50 +126,134 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
   return (
     <div id="progress-tracker-root" className="max-w-4xl mx-auto space-y-6">
       {!activeApp ? (
-        /* Sign-In / ID Entry Panel */
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-lg mx-auto shadow-xs space-y-6">
-          <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
-            <Clipboard className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
-          </div>
-          <div className="space-y-1.5">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Track Your Application</h2>
-            <p className="text-slate-500 text-xs max-w-sm mx-auto leading-relaxed">
-              Enter your Application Reference ID or the email address you applied with to inspect your real-time stage progress.
-            </p>
-          </div>
-
-          <form onSubmit={handleSearch} className="space-y-3">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => {
-                  setSearchQuery(e.target.value);
-                  if (errorMsg) setErrorMsg('');
-                }}
-                placeholder="e.g. Reference ID or your email address"
-                className={`w-full text-xs font-medium px-4 py-3 rounded-xl border bg-slate-50/50 focus:bg-white outline-none transition-all text-center ${
-                  errorMsg
-                    ? 'border-rose-400 focus:border-rose-500 ring-2 ring-rose-100'
-                    : 'border-slate-200 focus:border-slate-800'
-                }`}
-              />
+        currentUser ? (
+          /* Logged In Candidate: Calm Empty State when no applications submitted yet */
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-lg mx-auto shadow-xs space-y-6">
+            <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
+              <Clipboard className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
             </div>
-            {errorMsg && (
-              <p className="text-xs text-rose-600 font-medium text-center">{errorMsg}</p>
-            )}
-            <button
-              type="submit"
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>View Application Status</span>
-              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </form>
-        </div>
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">You Haven't Applied to Any Roles Yet</h2>
+              <p className="text-slate-500 text-xs max-w-sm mx-auto leading-relaxed">
+                Welcome, {currentUser.name ? currentUser.name.split(' ')[0] : 'Candidate'}. Once you submit an application or general CV drop, your real-time stage progression, technical screening, and interview status will appear here.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => onNavigateToTab('jobs')}
+                className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Browse Open Positions</span>
+                <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+              {!showManualLookup ? (
+                <button
+                  type="button"
+                  onClick={() => setShowManualLookup(true)}
+                  className="text-[11px] text-slate-400 hover:text-slate-600 font-medium cursor-pointer"
+                >
+                  Have an application reference ID from another email? Click to search
+                </button>
+              ) : (
+                <form onSubmit={handleSearch} className="space-y-3 pt-2">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      if (errorMsg) setErrorMsg('');
+                    }}
+                    placeholder="e.g. Reference ID or your email address"
+                    className={`w-full text-xs font-medium px-4 py-3 rounded-xl border bg-slate-50/50 focus:bg-white outline-none transition-all text-center ${
+                      errorMsg
+                        ? 'border-rose-400 focus:border-rose-500 ring-2 ring-rose-100'
+                        : 'border-slate-200 focus:border-slate-800'
+                    }`}
+                  />
+                  {errorMsg && (
+                    <p className="text-xs text-rose-600 font-medium text-center">{errorMsg}</p>
+                  )}
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold text-xs shadow-xs transition-all cursor-pointer"
+                  >
+                    Lookup Application
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Anonymous Visitor: Search By Reference ID / Email */
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-lg mx-auto shadow-xs space-y-6">
+            <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
+              <Clipboard className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Track Your Application</h2>
+              <p className="text-slate-500 text-xs max-w-sm mx-auto leading-relaxed">
+                Enter your Application Reference ID or the email address you applied with to inspect your real-time stage progress.
+              </p>
+            </div>
+
+            <form onSubmit={handleSearch} className="space-y-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  placeholder="e.g. Reference ID or your email address"
+                  className={`w-full text-xs font-medium px-4 py-3 rounded-xl border bg-slate-50/50 focus:bg-white outline-none transition-all text-center ${
+                    errorMsg
+                      ? 'border-rose-400 focus:border-rose-500 ring-2 ring-rose-100'
+                      : 'border-slate-200 focus:border-slate-800'
+                  }`}
+                />
+              </div>
+              {errorMsg && (
+                <p className="text-xs text-rose-600 font-medium text-center">{errorMsg}</p>
+              )}
+              <button
+                type="submit"
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>View Application Status</span>
+                <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </form>
+          </div>
+        )
       ) : (
         /* Active Application Dashboard View */
         <div className="space-y-6">
+          {/* Multiple applications selector for candidate */}
+          {userApps.length > 1 && (
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 flex items-center gap-2 overflow-x-auto text-xs shadow-xs">
+              <span className="font-semibold text-slate-500 shrink-0 px-2">Your Applications:</span>
+              {userApps.map(app => (
+                <button
+                  key={app.id}
+                  onClick={() => setActiveApplicationId(app.id)}
+                  className={`px-3 py-1.5 rounded-xl font-semibold transition-all shrink-0 cursor-pointer ${
+                    app.id === activeApp.id
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {app.jobTitle} ({app.id})
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Header Banner */}
           <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -187,6 +284,25 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
               </button>
             </div>
           </div>
+
+          {/* Review Turnaround Card for Applied & Screening */}
+          {(activeApp.currentStage === ApplicationStage.Applied || activeApp.currentStage === ApplicationStage.TechnicalScreening) && (
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-sm border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-xl text-left">
+                <div className="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full border border-slate-700">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} />
+                  Application Under Review
+                </div>
+                <h3 className="text-lg font-bold text-white">Engineering Review in Progress</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Our Pretoria engineering team is evaluating your application for <strong>{activeApp.jobTitle}</strong>. Once screening is complete, you will receive an invitation to the interactive coding challenge.
+                </p>
+              </div>
+              <div className="px-4 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-300 shrink-0">
+                Turnaround: 2–3 business days
+              </div>
+            </div>
+          )}
 
           {/* Current Stage Action Callout Card */}
           {activeApp.currentStage === ApplicationStage.CodingAssessment && !activeApp.codingSubmission && (

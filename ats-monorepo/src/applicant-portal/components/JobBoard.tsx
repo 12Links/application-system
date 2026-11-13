@@ -27,7 +27,7 @@ interface JobBoardProps {
 }
 
 export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
-  const { jobs, applyToJob, setActiveApplicationId, currentUser } = useAppState();
+  const { jobs, applyToJob, setActiveApplicationId, currentUser, applications } = useAppState();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
@@ -51,6 +51,24 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
   const [resumeSize, setResumeSize] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const userApplications = currentUser
+    ? applications.filter(app => app.applicantEmail.toLowerCase() === currentUser.email.toLowerCase())
+    : [];
+
+  const getInitials = (fullName?: string, email?: string) => {
+    if (fullName && fullName.trim()) {
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'CA';
+  };
+
   // Auto-fill from signed-in candidate
   React.useEffect(() => {
     if (isApplyModalOpen && currentUser) {
@@ -60,6 +78,9 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
       setPortfolio(currentUser.portfolioUrl || '');
       setGithub(currentUser.githubUrl || '');
       setLinkedin(currentUser.linkedinUrl || '');
+      if (currentUser.resumeFileName) {
+        setResumeName(currentUser.resumeFileName);
+      }
     }
   }, [isApplyModalOpen, currentUser]);
 
@@ -220,43 +241,90 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
 
   return (
     <div className="space-y-8">
-      {/* Hero Section: Crisp, high-contrast engineering header */}
-      <section className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 sm:p-10 shadow-sm text-left">
-        <div className="max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-700/80 rounded-full text-xs font-medium text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Careers at 12 Links Future Technologies
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-            Careers at 12 Links Future Technologies
-          </h1>
-
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-            Join our Pretoria engineering team building custom web platforms, AI tooling, and systems software.
-          </p>
-
-          {/* Authentic stack & location tags */}
-          <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs text-slate-300">
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
-              <Code2 className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
-              <span>TypeScript & Next.js</span>
+      {/* Hero Section: Collapsed compact bar for signed-in candidates, full high-contrast header for guests */}
+      {currentUser ? (
+        <section className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-5 sm:p-6 shadow-xs text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sm text-indigo-400 shrink-0 shadow-xs">
+              {getInitials(currentUser.name, currentUser.email)}
             </div>
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
-              <Terminal className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
-              <span>Python & FastAPI</span>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
-              <span>Pretoria / Hybrid</span>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
-              <GraduationCap className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
-              <span>Project & Graduate Roles</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-white">
+                  Welcome back, {currentUser.name ? currentUser.name.split(' ')[0] : 'Candidate'}
+                </h2>
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                  Pretoria Applicant
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {userApplications.length > 0
+                  ? `You have ${userApplications.length} active application${userApplications.length > 1 ? 's' : ''} in review. Track your progress or explore more roles below.`
+                  : 'Your profile is ready. Select an engineering vacancy below or submit a general CV drop.'}
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {userApplications.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => onNavigateToTab?.('tracker')}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Track Progress</span>
+                <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleOpenGeneralApply}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Submit CV Drop</span>
+                <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 sm:p-10 shadow-sm text-left">
+          <div className="max-w-3xl space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-700/80 rounded-full text-xs font-medium text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Careers at 12 Links Future Technologies
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+              Careers at 12 Links Future Technologies
+            </h1>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+              Join our Pretoria engineering team building custom web platforms, AI tooling, and systems software.
+            </p>
+
+            {/* Authentic stack & location tags */}
+            <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs text-slate-300">
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
+                <Code2 className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
+                <span>TypeScript & Next.js</span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
+                <Terminal className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
+                <span>Python & FastAPI</span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
+                <MapPin className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
+                <span>Pretoria / Hybrid</span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl">
+                <GraduationCap className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
+                <span>Project & Graduate Roles</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* When NO vacancies exist: Hide broken search filters and offer clean Open Application / CV Drop */}
       {jobs.length === 0 ? (
