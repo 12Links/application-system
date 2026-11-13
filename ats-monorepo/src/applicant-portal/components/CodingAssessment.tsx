@@ -18,7 +18,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const CodingAssessment: React.FC = () => {
+interface CodingAssessmentProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export const CodingAssessment: React.FC<CodingAssessmentProps> = ({ onNavigateToTab }) => {
   const { applications, activeApplicationId, submitCoding, questions } = useAppState();
 
   const [selectedQuestionIdx, setSelectedQuestionIdx] = useState(0);
@@ -51,12 +55,49 @@ export const CodingAssessment: React.FC = () => {
   // Safety checks
   if (!activeApp) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm space-y-3">
-        <FileCode className="w-14 h-14 text-indigo-300 mx-auto" />
-        <h3 className="text-lg font-bold text-slate-800">No Active Application Selected</h3>
-        <p className="text-xs text-slate-500">
-          Please search or connect your application in the <span className="font-semibold text-indigo-600">Track Progress</span> tab first.
-        </p>
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs space-y-6">
+        <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
+          <FileCode className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Technical Assessment Process</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Our engineering assessment evaluates practical problem solving, algorithmic efficiency, and code clarity in TypeScript, JavaScript, or Python.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+            <span className="text-xs font-semibold text-slate-800 block">1. Screening</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">Resume & portfolio review by engineering leads.</p>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+            <span className="text-xs font-semibold text-slate-800 block">2. Coding Task</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">Timed in-browser challenge with automated test suites.</p>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+            <span className="text-xs font-semibold text-slate-800 block">3. Interview</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">1-on-1 architecture review of your solution.</p>
+          </div>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('tracker')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Track Existing Application</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('jobs')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          >
+            <span>Browse Vacancies</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -440,11 +481,11 @@ export const CodingAssessment: React.FC = () => {
               </div>
 
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Evaluation Score</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Evaluation score</span>
                 <p className="text-3xl font-black text-indigo-600">{achievedScore}%</p>
                 <p className="text-xs font-semibold text-slate-700">
                   {achievedScore >= 70
-                    ? '🎉 Passing Score! You have been advanced to the Live Technical Interview!'
+                    ? 'Passing score. You have been advanced to the live technical interview.'
                     : 'Your score has been submitted for hiring manager review.'}
                 </p>
               </div>

@@ -40,7 +40,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      setErrorMsg('Please enter your Application Reference ID or email address.');
+      return;
+    }
 
     const found = applications.find(
       app =>
@@ -52,7 +55,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
       setActiveApplicationId(found.id);
       setErrorMsg('');
     } else {
-      setErrorMsg('No application found with that ID or Email. Please check and try again.');
+      setErrorMsg('No application found with that ID or email. Please check your reference and try again.');
     }
   };
 
@@ -111,14 +114,14 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
     <div id="progress-tracker-root" className="max-w-4xl mx-auto space-y-6">
       {!activeApp ? (
         /* Sign-In / ID Entry Panel */
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-lg mx-auto shadow-sm space-y-6">
-          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-            <Clipboard className="w-7 h-7" />
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-lg mx-auto shadow-xs space-y-6">
+          <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
+            <Clipboard className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
           </div>
-          <div>
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Track Your Application</h2>
-            <p className="text-slate-500 text-xs mt-2 max-w-sm mx-auto">
-              Enter your Application ID (e.g. APP-801) or the email address you used when applying to view real-time stage progress.
+          <div className="space-y-1.5">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Track Your Application</h2>
+            <p className="text-slate-500 text-xs max-w-sm mx-auto leading-relaxed">
+              Enter your Application Reference ID or the email address you applied with to inspect your real-time stage progress.
             </p>
           </div>
 
@@ -127,18 +130,27 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
               <input
                 type="text"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Enter Application ID or Email Address"
-                className="w-full text-xs font-semibold px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all text-center"
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  if (errorMsg) setErrorMsg('');
+                }}
+                placeholder="e.g. Reference ID or your email address"
+                className={`w-full text-xs font-medium px-4 py-3 rounded-xl border bg-slate-50/50 focus:bg-white outline-none transition-all text-center ${
+                  errorMsg
+                    ? 'border-rose-400 focus:border-rose-500 ring-2 ring-rose-100'
+                    : 'border-slate-200 focus:border-slate-800'
+                }`}
               />
             </div>
-            {errorMsg && <p className="text-xs text-rose-600 font-semibold">{errorMsg}</p>}
+            {errorMsg && (
+              <p className="text-xs text-rose-600 font-medium text-center">{errorMsg}</p>
+            )}
             <button
               type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>View Application Status</span>
-              <ChevronRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </form>
         </div>
@@ -149,12 +161,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
           <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Application File:</span>
-                <span className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">
+                <span className="text-xs font-medium text-slate-500">Reference ID:</span>
+                <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
                   {activeApp.id}
                 </span>
               </div>
-              <h2 className="text-xl font-black text-slate-900">{activeApp.applicantName}</h2>
+              <h2 className="text-xl font-bold text-slate-900">{activeApp.applicantName}</h2>
               <p className="text-xs text-slate-500">
                 Applied for <strong className="text-slate-700">{activeApp.jobTitle}</strong> • Submitted on{' '}
                 {new Date(activeApp.appliedAt).toLocaleDateString()}
@@ -162,8 +174,8 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
             </div>
 
             <div className="flex items-center gap-2 self-stretch sm:self-auto">
-              <div className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 ${currentStatusStyle(activeApp.currentStage)}`}>
-                <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+              <div className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 ${currentStatusStyle(activeApp.currentStage)}`}>
+                <span className="w-2 h-2 rounded-full bg-current" />
                 <span>Stage: {activeApp.currentStage}</span>
               </div>
               <button
@@ -171,72 +183,64 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl text-xs transition-all cursor-pointer"
                 title="Disconnect application view"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" strokeWidth={1.5} />
               </button>
             </div>
           </div>
 
           {/* Current Stage Action Callout Card */}
           {activeApp.currentStage === ApplicationStage.CodingAssessment && !activeApp.codingSubmission && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-6 rounded-3xl shadow-lg border border-indigo-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-            >
-              <div className="space-y-1.5 max-w-xl">
-                <div className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-indigo-500/30 text-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-indigo-400/30">
-                  <FileCode className="w-3.5 h-3.5 text-sky-400" />
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-sm border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-xl text-left">
+                <div className="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full border border-slate-700">
+                  <FileCode className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} />
                   Action Required
                 </div>
-                <h3 className="text-lg font-black text-white">Coding Assessment Unlocked!</h3>
-                <p className="text-xs text-indigo-200 leading-relaxed">
-                  Your resume has passed initial technical screening. Please complete the interactive developer coding challenge to advance to the final interview round.
+                <h3 className="text-lg font-bold text-white">Coding Assessment Unlocked</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Your profile has passed initial screening. Complete the technical problem challenge to advance to the architecture interview round.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateToTab('coding')}
-                className="px-5 py-3 bg-white hover:bg-indigo-50 text-indigo-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+                className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer"
               >
                 <span>Launch Coding Challenge</span>
-                <ArrowRight className="w-4 h-4 text-indigo-600" />
+                <ArrowRight className="w-4 h-4 text-slate-900" strokeWidth={1.5} />
               </button>
-            </motion.div>
+            </div>
           )}
 
           {activeApp.currentStage === ApplicationStage.Interview && !activeApp.interviewDate && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-sky-900 to-indigo-900 text-white p-6 rounded-3xl shadow-lg border border-sky-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-            >
-              <div className="space-y-1.5 max-w-xl">
-                <div className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-sky-500/30 text-sky-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-sky-400/30">
-                  <Calendar className="w-3.5 h-3.5 text-sky-300" />
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-sm border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-xl text-left">
+                <div className="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full border border-slate-700">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} />
                   Interview Invitation
                 </div>
-                <h3 className="text-lg font-black text-white">Schedule Your Technical Interview</h3>
-                <p className="text-xs text-sky-200 leading-relaxed">
-                  You passed the coding assessment! Select an available date and time slot to meet with our senior engineering team.
+                <h3 className="text-lg font-bold text-white">Schedule Technical Interview</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  You passed the coding round. Select an available time slot to discuss system architecture with our engineering team.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateToTab('scheduler')}
-                className="px-5 py-3 bg-white hover:bg-sky-50 text-sky-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+                className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer"
               >
                 <span>Choose Interview Slot</span>
-                <ArrowRight className="w-4 h-4 text-sky-600" />
+                <ArrowRight className="w-4 h-4 text-slate-900" strokeWidth={1.5} />
               </button>
-            </motion.div>
+            </div>
           )}
 
           {activeApp.currentStage === ApplicationStage.Interview && activeApp.interviewDate && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-5 rounded-2xl flex items-center justify-between gap-4">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-5 rounded-2xl flex items-center justify-between gap-4 text-left">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" strokeWidth={1.5} />
                 <div className="text-xs">
-                  <span className="font-bold text-emerald-800 block text-sm">Live Technical Interview Confirmed</span>
+                  <span className="font-semibold text-emerald-900 block text-sm">Technical Interview Confirmed</span>
                   <span className="text-emerald-700">
                     Scheduled for <strong>{activeApp.interviewDate}</strong> at <strong>{activeApp.interviewTimeSlot}</strong>.
                   </span>
@@ -244,27 +248,23 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
               </div>
               <button
                 onClick={() => onNavigateToTab('scheduler')}
-                className="text-xs font-bold text-emerald-800 hover:underline shrink-0"
+                className="text-xs font-semibold text-emerald-900 hover:underline shrink-0"
               >
-                View Details
+                View details
               </button>
             </div>
           )}
 
           {activeApp.currentStage === ApplicationStage.Offered && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-900 text-white p-6 rounded-3xl shadow-xl border border-emerald-700 space-y-3"
-            >
-              <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wider">
-                <PartyPopper className="w-5 h-5 text-emerald-400" /> Official Job Offer Extended!
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-sm border border-slate-800 space-y-2 text-left">
+              <div className="inline-flex items-center gap-1.5 text-xs font-medium bg-emerald-900/60 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-700/60">
+                Official Offer Extended
               </div>
-              <h3 className="text-xl font-black">Welcome to 12 Links Future Technologies!</h3>
-              <p className="text-xs text-emerald-100 leading-relaxed max-w-2xl">
-                We are thrilled to offer you the position of <strong>{activeApp.jobTitle}</strong>. Our HR team has sent your formal offer letter and compensation package to <strong>{activeApp.applicantEmail}</strong>.
+              <h3 className="text-xl font-bold">Offer Extended</h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                We are pleased to extend an offer for the position of <strong>{activeApp.jobTitle}</strong>. Our hiring team has sent your formal offer documentation to <strong>{activeApp.applicantEmail}</strong>.
               </p>
-            </motion.div>
+            </div>
           )}
 
           {/* Stepper Timeline Card */}

@@ -269,9 +269,10 @@ export const CandidatePipeline: React.FC = () => {
                               setSelectedAppId(app.id);
                               setViewMode('detail');
                             }}
-                            className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                            className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
                           >
-                            Dossier →
+                            <span>Dossier</span>
+                            <ChevronRight className="w-3 h-3" />
                           </button>
 
                           {col.stage !== ApplicationStage.Offered && col.stage !== ApplicationStage.Rejected && (

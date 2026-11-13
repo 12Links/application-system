@@ -137,11 +137,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
 
           <form onSubmit={handleAuthSubmit} className="w-full space-y-4">
             {isSignUp && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Full Name</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 block">Full name</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <UserIcon className="w-4 h-4" />
+                    <UserIcon className="w-4 h-4" strokeWidth={1.5} />
                   </span>
                   <input
                     id="signup-name-input"
@@ -149,18 +149,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name & surname"
-                    className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all placeholder:text-slate-400"
+                    placeholder="e.g. Sipho Ndlovu"
+                    className="w-full pl-9 pr-4 py-2.5 text-xs border border-slate-200 rounded-xl focus:border-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Email Address</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 block">Email address</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Mail className="w-4 h-4" />
+                  <Mail className="w-4 h-4" strokeWidth={1.5} />
                 </span>
                 <input
                   id="auth-email-input"
@@ -168,44 +168,44 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all placeholder:text-slate-400"
+                  placeholder="e.g. sipho@example.com"
+                  className="w-full pl-9 pr-4 py-2.5 text-xs border border-slate-200 rounded-xl focus:border-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium"
                 />
               </div>
             </div>
 
             {isSignUp && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 block">Phone number</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                      <Phone className="w-3.5 h-3.5" />
+                      <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </span>
                     <input
                       id="signup-phone-input"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+27 (082) 123-4567"
-                      className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="+27 82 123 4567"
+                      className="w-full pl-9 pr-4 py-2.5 text-xs border border-slate-200 rounded-xl focus:border-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Portfolio Link (Optional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 block">Portfolio link (optional)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                      <Globe className="w-3.5 h-3.5" />
+                      <Globe className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </span>
                     <input
                       id="signup-portfolio-input"
                       type="url"
                       value={portfolioUrl}
                       onChange={(e) => setPortfolioUrl(e.target.value)}
-                      placeholder="https://myportfolio.co.za"
-                      className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="https://yourportfolio.co.za"
+                      className="w-full pl-9 pr-4 py-2.5 text-xs border border-slate-200 rounded-xl focus:border-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium"
                     />
                   </div>
                 </div>
@@ -213,29 +213,29 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             )}
 
             {isSignUp && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">GitHub URL (Optional)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 block">GitHub profile (optional)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <Github className="w-4 h-4" />
+                    <Github className="w-4 h-4" strokeWidth={1.5} />
                   </span>
                   <input
                     id="signup-github-input"
                     type="url"
                     value={githubUrl}
                     onChange={(e) => setGithubUrl(e.target.value)}
-                    placeholder="https://github.com/myusername"
-                    className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all placeholder:text-slate-400"
+                    placeholder="https://github.com/username"
+                    className="w-full pl-9 pr-4 py-2.5 text-xs border border-slate-200 rounded-xl focus:border-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Password</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 block">Password</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Lock className="w-4 h-4" />
+                  <Lock className="w-4 h-4" strokeWidth={1.5} />
                 </span>
                 <input
                   id="auth-password-input"
@@ -244,7 +244,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all placeholder:text-slate-400"
+                  className="w-full pl-9 pr-10 py-2.5 text-xs border border-slate-200 rounded-xl focus:border-slate-800 outline-none transition-all placeholder:text-slate-400 font-medium"
                 />
                 <button
                   type="button"
@@ -259,9 +259,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             <button
               id="auth-submit-btn"
               type="submit"
-              className="w-full py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg shadow-sky-500/10 transition-all uppercase tracking-wider mt-2"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all mt-2 cursor-pointer"
             >
-              {isSignUp ? 'Create Account & Continue' : 'Sign In'}
+              {isSignUp ? 'Create Candidate Account' : 'Sign In'}
             </button>
           </form>
         </div>

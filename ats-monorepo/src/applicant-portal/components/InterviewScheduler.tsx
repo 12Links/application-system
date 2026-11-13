@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const InterviewScheduler: React.FC = () => {
+interface InterviewSchedulerProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({ onNavigateToTab }) => {
   const { applications, activeApplicationId, scheduleInterviewSlot } = useAppState();
 
   const [selectedDate, setSelectedDate] = useState('2026-07-16');
@@ -34,12 +38,49 @@ export const InterviewScheduler: React.FC = () => {
 
   if (!activeApp) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm space-y-3">
-        <CalendarIcon className="w-14 h-14 text-indigo-300 mx-auto" />
-        <h3 className="text-lg font-bold text-slate-800">No Active Application Selected</h3>
-        <p className="text-xs text-slate-500">
-          Please search or connect your application in the <span className="font-semibold text-indigo-600">Track Progress</span> tab first.
-        </p>
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs space-y-6">
+        <div className="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto">
+          <CalendarIcon className="w-6 h-6 text-slate-600" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Technical Interview Overview</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Candidates who complete the technical assessment are invited to an interactive architecture and systems conversation with our engineering leads.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+            <span className="text-xs font-semibold text-slate-800 block">Duration</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">45–60 minutes focused on live problem solving and code review.</p>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+            <span className="text-xs font-semibold text-slate-800 block">Format</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">Online via Google Meet or on-site at our Pretoria office.</p>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+            <span className="text-xs font-semibold text-slate-800 block">Preparation</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">Review your previous submission and past architectural decisions.</p>
+          </div>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('tracker')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Track Existing Application</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('jobs')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          >
+            <span>Browse Vacancies</span>
+          </button>
+        </div>
       </div>
     );
   }
