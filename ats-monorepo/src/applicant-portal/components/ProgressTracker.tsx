@@ -56,11 +56,6 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
     }
   };
 
-  const handleSelectDemoApp = (appId: string) => {
-    setActiveApplicationId(appId);
-    setErrorMsg('');
-  };
-
   const handleSignOut = () => {
     setActiveApplicationId(null);
     setSearchQuery('');
@@ -133,7 +128,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="e.g. APP-801 or thabo.mokoena@example.com"
+                placeholder="Enter Application ID or Email Address"
                 className="w-full text-xs font-semibold px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all text-center"
               />
             </div>
@@ -146,30 +141,6 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onNavigateToTa
               <ChevronRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick Demo Candidates pills */}
-          <div className="pt-4 border-t border-slate-100 space-y-2 text-left">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-              Or inspect a sample candidate:
-            </span>
-            <div className="flex flex-col gap-1.5">
-              {applications.slice(0, 3).map(demoApp => (
-                <button
-                  key={demoApp.id}
-                  onClick={() => handleSelectDemoApp(demoApp.id)}
-                  className="p-2.5 bg-slate-50 hover:bg-indigo-50/60 border border-slate-100 hover:border-indigo-200 rounded-xl flex items-center justify-between text-xs transition-all cursor-pointer"
-                >
-                  <div className="flex flex-col text-left">
-                    <span className="font-bold text-slate-800">{demoApp.applicantName}</span>
-                    <span className="text-[10px] text-slate-400">{demoApp.jobTitle}</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${currentStatusStyle(demoApp.currentStage)}`}>
-                    {demoApp.currentStage}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       ) : (
         /* Active Application Dashboard View */

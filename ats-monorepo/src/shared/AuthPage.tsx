@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from './StateContext';
 import { CompanyLogo } from './CompanyLogo';
-import { Mail, Lock, User as UserIcon, Phone, Globe, Github, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, Phone, Globe, Github, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface AuthPageProps {
@@ -13,7 +13,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -63,13 +62,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
         setError(result.message);
       }
     }
-  };
-
-  const fillDemoAccount = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('password');
-    setIsSignUp(false);
-    setError(null);
   };
 
   return (
@@ -272,52 +264,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
               {isSignUp ? 'Create Account & Continue' : 'Sign In'}
             </button>
           </form>
-
-          {/* Quick Demo Assist Tooltip */}
-          <div className="w-full mt-6 pt-5 border-t border-slate-100 flex flex-col items-center">
-            <button
-              id="toggle-demo-accounts-btn"
-              type="button"
-              onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-              className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-              <span>Need test candidate profiles? View Demo Accounts</span>
-            </button>
-
-            {showDemoAccounts && (
-              <div className="w-full mt-3 bg-slate-50 border border-slate-150 rounded-xl p-3 space-y-2 text-[11px] text-slate-600 animate-fade-in">
-                <p className="font-bold text-slate-700 text-center mb-1">Click below to auto-fill preloaded portfolios:</p>
-                <div className="grid grid-cols-1 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => fillDemoAccount('evelyn.miller@example.com')}
-                    className="text-left p-2 rounded bg-white hover:bg-sky-50 border border-slate-100 hover:border-sky-200 transition-all font-medium flex justify-between"
-                  >
-                    <span>Evelyn Miller (Senior Full-Stack)</span>
-                    <span className="text-sky-600 font-bold">evelyn.miller@example.com</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillDemoAccount('alex.thorne@codeflow.io')}
-                    className="text-left p-2 rounded bg-white hover:bg-sky-50 border border-slate-100 hover:border-sky-200 transition-all font-medium flex justify-between"
-                  >
-                    <span>Alex Thorne (Frontend Engineer)</span>
-                    <span className="text-sky-600 font-bold">alex.thorne@codeflow.io</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillDemoAccount('marcus.patel@gmail.com')}
-                    className="text-left p-2 rounded bg-white hover:bg-sky-50 border border-slate-100 hover:border-sky-200 transition-all font-medium flex justify-between"
-                  >
-                    <span>Marcus Patel (Junior Backend)</span>
-                    <span className="text-sky-600 font-bold">marcus.patel@gmail.com</span>
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-400 text-center pt-1 italic">All test profiles use password: <strong>password</strong></p>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

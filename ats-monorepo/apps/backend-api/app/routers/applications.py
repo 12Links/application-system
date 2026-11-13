@@ -60,21 +60,13 @@ async def submit_application(
     except ValueError:
         safe_job_uuid = uuid.uuid4()
 
-    # --- THE FIX: Satisfy the strict Database Foreign Key ---
-    # Check if the job actually exists in the database
+    # Verify that the job exists in the database
     existing_job = db.query(JobPost).filter(JobPost.id == safe_job_uuid).first()
-    
     if not existing_job:
-        # Silently create a dummy job in the DB so Supabase doesn't reject the application
-        dummy_job = JobPost(
-            id=safe_job_uuid,
-            title="Frontend Mock Job",
-            description="Auto-generated to allow frontend testing.",
-            requirements="Auto-generated"
+        raise HTTPException(
+            status_code=400,
+            detail="The specified job opening does not exist or is no longer accepting applications."
         )
-        db.add(dummy_job)
-        db.commit() 
-    # --------------------------------------------------------
 
     # 2. Save Application to the Database
     new_application = Application(

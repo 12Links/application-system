@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Key, Mail, ArrowRight, Loader2, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { Key, Mail, ArrowRight, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { CompanyLogo } from '../../shared/CompanyLogo';
 import { motion } from 'motion/react';
 
@@ -13,59 +13,56 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const performLogin = (staffEmail: string) => {
-    localStorage.setItem('ats_admin_session', 'demo_admin_jwt_token_verified');
-    localStorage.setItem('ats_admin_email', staffEmail);
-    onLoginSuccess();
-  };
-
-  const handleQuickDemoStaff = () => {
-    setEmail('info@12links.co.za');
-    setPassword('Admin@12links');
-    performLogin('info@12links.co.za');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    // Use VITE_API_URL if explicitly provided; otherwise default to the Vercel multi-service route '/api'
+    // Default to the Vercel multi-service route '/api' or explicitly configured VITE_API_URL
     const apiUrl = import.meta.env.VITE_API_URL ?? '/api';
-    if (apiUrl) {
-      try {
-        const formData = new URLSearchParams();
-        formData.append('username', email);
-        formData.append('password', password);
 
-        const response = await fetch(`${apiUrl}/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: formData
-        });
+    try {
+      const formData = new URLSearchParams();
+      formData.append('username', email.trim());
+      formData.append('password', password);
 
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem('ats_admin_session', data.access_token);
-          localStorage.setItem('ats_admin_email', email);
-          onLoginSuccess();
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Strict role validation: Ensure user has administrator role in Supabase
+        if (data.role !== 'admin') {
+          setError('Access denied. This account does not possess administrator credentials.');
+          setIsLoading(false);
           return;
         }
-      } catch (err) {
-        console.warn('Backend API unreachable, checking direct credentials fallback', err);
-      }
-    }
 
-    // Direct / Local Staff verification fallback
-    if (
-      (email.toLowerCase() === 'info@12links.co.za' || email.toLowerCase() === 'admin@12links.com') &&
-      (password === 'Admin@12links' || password === 'admin' || password === 'password')
-    ) {
-      performLogin(email);
-    } else {
-      setError('Invalid credentials. Use info@12links.co.za with Admin@12links or click Demo Staff Access.');
+        localStorage.setItem('ats_admin_session', data.access_token);
+        localStorage.setItem('ats_admin_email', data.email || email.trim());
+        if (data.name) {
+          localStorage.setItem('ats_admin_name', data.name);
+        }
+        onLoginSuccess();
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        setError('Invalid staff credentials. Only registered administrators in the database are authorized.');
+      } else {
+        const errData = await response.json().catch(() => null);
+        setError(errData?.detail || 'Authentication failed. Please verify your credentials.');
+      }
+    } catch (err) {
+      console.error('Authentication request error:', err);
+      setError('Unable to connect to the authentication service. Please verify your connection or try again shortly.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -78,36 +75,18 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6 text-left"
       >
-        {/* Branding & Icon */}
+        {/* Branding & Header */}
         <div className="text-center space-y-3 pb-1">
           <div className="flex justify-center mb-1">
             <CompanyLogo variant="horizontal" size="md" lightTheme={true} />
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-100/80 rounded-full text-[10px] font-bold text-indigo-700 uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-            Recruiter & Hiring Team Access
+            Recruiter & Administrator Workspace
           </div>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            Manage vacancies, candidate pipeline stages, technical assessments, and interview scheduling.
+            Authorized administrative access for managing vacancies, candidate pipelines, evaluations, and hiring workflows.
           </p>
-        </div>
-
-        {/* Demo Staff Quick Action Pill */}
-        <div className="p-3 bg-gradient-to-r from-sky-50 to-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-            <div className="text-[11px] leading-tight">
-              <span className="font-bold text-slate-800 block">Recruitment Staff Demo</span>
-              <span className="text-slate-500 text-[10px]">info@12links.co.za</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleQuickDemoStaff}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all shrink-0 cursor-pointer"
-          >
-            1-Click Enter
-          </button>
         </div>
 
         {/* Error Alert */}
@@ -127,7 +106,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider flex items-center gap-1">
               <Mail className="w-3 h-3 text-slate-400" />
-              Staff Email Address
+              Administrator Email
             </label>
             <input
               type="email"
@@ -143,7 +122,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider flex items-center gap-1">
               <Key className="w-3 h-3 text-slate-400" />
-              Staff Password / Access Key
+              Password
             </label>
             <input
               type="password"
@@ -164,7 +143,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                <span>Verifying Credentials...</span>
+                <span>Verifying Database Authorization...</span>
               </>
             ) : (
               <>

@@ -296,10 +296,22 @@ export const JobBoard: React.FC<JobBoardProps> = ({ onNavigateToTab }) => {
       </div>
 
       {/* Jobs Grid */}
-      {filteredJobs.length === 0 ? (
+      {jobs.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center max-w-lg mx-auto space-y-4 shadow-sm">
+          <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Briefcase className="w-8 h-8" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="font-black text-slate-900 text-lg tracking-tight">No Active Vacancies Advertised Yet</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+              We are currently preparing exciting new positions to join our team. Please check back soon or connect with our recruitment team.
+            </p>
+          </div>
+        </div>
+      ) : filteredJobs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-md mx-auto space-y-3">
           <Briefcase className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="font-bold text-slate-800 text-base">No open positions found</h3>
+          <h3 className="font-bold text-slate-800 text-base">No matching positions found</h3>
           <p className="text-xs text-slate-500">Try adjusting your search criteria or clear the filters.</p>
           <button
             onClick={() => {

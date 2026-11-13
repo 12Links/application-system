@@ -9,16 +9,10 @@ import { ApplicantPortal } from './applicant-portal/ApplicantPortal';
 import { AdminPortal } from './admin-portal/AdminPortal';
 import {
   Shield,
-  Sparkles,
-  HelpCircle,
   MapPin,
   UserCheck,
   Briefcase,
-  Users,
-  Layers,
-  RotateCcw,
-  ChevronRight,
-  ExternalLink
+  Users
 } from 'lucide-react';
 import { CompanyLogo } from './shared/CompanyLogo';
 
@@ -32,8 +26,7 @@ export default function App() {
 
 function AppContent() {
   const [currentPortal, setCurrentPortal] = useState<'applicant' | 'admin'>('applicant');
-  const [showDemoGuide, setShowDemoGuide] = useState(false);
-  const { jobs, applications, restoreDemoData } = useAppState();
+  const { jobs, applications } = useAppState();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-indigo-500/10 selection:text-indigo-600">
@@ -86,41 +79,9 @@ function AppContent() {
                 <span>Admin Site</span>
               </button>
             </div>
-
-            <button
-              onClick={() => setShowDemoGuide(!showDemoGuide)}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Toggle Testing & Simulation Guide"
-            >
-              <HelpCircle className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>
-
-      {/* RECRUITMENT SIMULATION WALKTHROUGH BANNER (TOGGLEABLE) */}
-      {showDemoGuide && (
-        <div className="bg-indigo-950 text-indigo-100 p-4 border-b border-indigo-900 text-xs">
-          <div className="max-w-7xl mx-auto space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-white text-xs">
-                <Sparkles className="w-4 h-4 text-sky-400" />
-                <span>Interactive Recruitment Lifecycle Walkthrough:</span>
-              </div>
-              <button
-                onClick={() => setShowDemoGuide(false)}
-                className="text-[10px] text-indigo-300 hover:text-white"
-              >
-                Close Guide ×
-              </button>
-            </div>
-            <p className="text-[11px] text-indigo-200 leading-relaxed max-w-4xl">
-              <strong>1. Applicant Side:</strong> Browse open opportunities, read job descriptions & requirements, submit an application (with resume and cover note), track application progress using ID (e.g. APP-801), complete the interactive coding assessment, and book a technical interview slot.<br />
-              <strong>2. Admin Side:</strong> Login as staff (using 1-click demo button or info@12links.co.za), manage vacancies (create, edit, pause, publish), review candidate pipeline in Kanban or Dossier view, adjust evaluation scores, advance candidates across stages, and review scheduled interviews.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* MAIN VIEW AREA */}
       <div className="flex-1 flex flex-col">

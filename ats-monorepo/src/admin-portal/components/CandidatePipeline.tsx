@@ -605,7 +605,11 @@ export const CandidatePipeline: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-12 text-center text-slate-400 text-xs">Select a candidate to view dossier.</div>
+              <div className="p-12 text-center text-slate-400 text-xs space-y-2">
+                <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="font-bold text-slate-700 text-sm">No Candidates in Pipeline</p>
+                <p className="text-slate-400 text-[11px]">Applications submitted by applicants will appear here for review and evaluation.</p>
+              </div>
             )}
           </div>
         </div>

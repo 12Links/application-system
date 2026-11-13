@@ -386,6 +386,17 @@ export const JobPostingsManager: React.FC = () => {
 
       {/* JOBS LIST */}
       <div className="space-y-4">
+        {filteredJobs.length === 0 && (
+          <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center max-w-md mx-auto space-y-3">
+            <Briefcase className="w-10 h-10 text-slate-300 mx-auto" />
+            <h4 className="font-bold text-slate-800 text-sm">No Vacancies Created Yet</h4>
+            <p className="text-xs text-slate-500">
+              {searchFilter
+                ? 'No postings match your search filter.'
+                : 'Click "Post New Vacancy" above to advertise a new job opening for applicants.'}
+            </p>
+          </div>
+        )}
         {filteredJobs.map(job => {
           const applicantCount = getApplicantCount(job.id);
           const isPaused = job.status === 'Paused';

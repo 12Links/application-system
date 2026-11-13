@@ -5,14 +5,13 @@ import { CandidatePipeline } from './components/CandidatePipeline';
 import { JobPostingsManager } from './components/JobPostingsManager';
 import { CodingQuestionsManager } from './components/CodingQuestionsManager';
 import { AdminLogin } from './components/AdminLogin';
-import { Users, Briefcase, FileCode, Calendar, RefreshCw, Layers, MapPin, LogOut, Shield, Sparkles, CheckCircle } from 'lucide-react';
+import { Users, Briefcase, FileCode, Layers, MapPin, LogOut } from 'lucide-react';
 import { CompanyLogo } from '../shared/CompanyLogo';
 
 export const AdminPortal: React.FC = () => {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => !!localStorage.getItem('ats_admin_session'));
-  const { applications, jobs, restoreDemoData, resetAllData } = useAppState();
+  const { applications, jobs, resetAllData } = useAppState();
   const [adminTab, setAdminTab] = useState('pipeline');
-  const [demoBanner, setDemoBanner] = useState(false);
 
   // Compute stats counters
   const totalPostings = jobs.length;
@@ -22,12 +21,6 @@ export const AdminPortal: React.FC = () => {
   ).length;
   const interviewsScheduled = applications.filter(app => !!app.interviewDate).length;
   const offersExtended = applications.filter(app => app.currentStage === ApplicationStage.Offered).length;
-
-  const handleRestoreDemo = () => {
-    restoreDemoData();
-    setDemoBanner(true);
-    setTimeout(() => setDemoBanner(false), 3000);
-  };
 
   if (!isAdminLoggedIn) {
     return (
@@ -88,24 +81,16 @@ export const AdminPortal: React.FC = () => {
 
           {/* Staff controls */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleRestoreDemo}
-              className="hidden lg:flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
-              title="Populate demo candidates and vacancies"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Restore Demo Data</span>
-            </button>
-
             <div className="hidden md:block text-right">
-              <p className="text-[9px] text-indigo-600 uppercase font-black tracking-wider">Hiring Manager</p>
-              <p className="text-xs font-bold text-slate-700">{localStorage.getItem('ats_admin_email') || 'info@12links.co.za'}</p>
+              <p className="text-[9px] text-indigo-600 uppercase font-black tracking-wider">Hiring Administrator</p>
+              <p className="text-xs font-bold text-slate-700">{localStorage.getItem('ats_admin_email') || 'Administrator'}</p>
             </div>
 
             <button
               onClick={() => {
                 localStorage.removeItem('ats_admin_session');
                 localStorage.removeItem('ats_admin_email');
+                localStorage.removeItem('ats_admin_name');
                 setIsAdminLoggedIn(false);
               }}
               className="px-3 py-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200/60 hover:border-rose-200 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
@@ -117,14 +102,6 @@ export const AdminPortal: React.FC = () => {
           </div>
         </div>
       </header>
-
-      {/* Demo Banner Notification */}
-      {demoBanner && (
-        <div className="bg-indigo-600 text-white text-xs font-bold py-2 text-center flex items-center justify-center gap-2">
-          <CheckCircle className="w-4 h-4" />
-          <span>Demo dataset restored: Sample job vacancies, candidates across all pipeline stages, and coding tasks loaded!</span>
-        </div>
-      )}
 
       {/* Stats Counter Row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
