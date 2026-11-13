@@ -42,11 +42,28 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # SQLAlchemy 2.0 requires modern driver dialect for PostgreSQL (using robust psycopg2-binary)
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
 raw_db_url = settings.DATABASE_URL
 if raw_db_url.startswith("postgres://"):
     raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg2://", 1)
 elif raw_db_url.startswith("postgresql://") and not raw_db_url.startswith("postgresql+"):
     raw_db_url = raw_db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+# Clean query parameters: strip non-libpq options (e.g. 'supa' injected by Prisma/Supabase pooler)
+try:
+    parsed = urlparse(raw_db_url)
+    if parsed.query:
+        allowed_params = {'sslmode', 'connect_timeout', 'application_name', 'options', 'keepalives', 'target_session_attrs'}
+        qs = parse_qs(parsed.query)
+        clean_qs = {k: v for k, v in qs.items() if k.lower() in allowed_params}
+        # Ensure sslmode=require for cloud pooler connections if not already present
+        if 'sslmode' not in clean_qs and not parsed.netloc.startswith("localhost"):
+            clean_qs['sslmode'] = ['require']
+        cleaned_query = urlencode(clean_qs, doseq=True)
+        raw_db_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, cleaned_query, parsed.fragment))
+except Exception as e:
+    print(f"Notice cleaning database URL query parameters: {e}")
 
 connect_args = {"check_same_thread": False} if raw_db_url.startswith("sqlite") else {}
 engine = create_engine(raw_db_url, connect_args=connect_args)
