@@ -1,0 +1,38 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "ats-monorepo": {
+      "root": "ats-monorepo",
+      "framework": "vite",
+      "rewrites": [
+        { "source": "/(.*)", "destination": "/index.html" }
+      ],
+      "bindings": [
+        {
+          "type": "service",
+          "service": "backend-api",
+          "format": "url",
+          "env": "BACKEND_API_URL"
+        }
+      ]
+    },
+    "backend-api": {
+      "root": "ats-monorepo/apps/backend-api",
+      "runtime": "python",
+      "entrypoint": "app/main.py",
+      "rewrites": [
+        { "source": "/api/:path(.*)?", "destination": "/:path" }
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": { "service": "backend-api" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "ats-monorepo" }
+    }
+  ]
+}

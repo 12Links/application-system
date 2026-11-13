@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 12 Links - Recruitment & Applicant Tracking System
 
-# Run and deploy your AI Studio app
+This repository contains the complete frontend and backend for the 12 Links Applicant Tracking System (ATS).
 
-This contains everything you need to run your app locally.
+## Running the Application
 
-View your app in AI Studio: https://ai.studio/apps/be2566f6-1bb7-4bb3-bf7a-e26c8930fc49
+### 1. Install Dependencies
+\`\`\`bash
+npm install
+\`\`\`
 
-## Run Locally
+### 2. Run the Development Server
+\`\`\`bash
+npm run dev
+\`\`\`
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Features
+- **Applicant Side**:
+  - Open Positions (Job Board) with search & department filters
+  - Job Details modal with comprehensive requirements and perks
+  - Instant Application modal with resume upload simulator and unique Tracking ID
+  - Live Stage Progress Tracker
+  - In-browser multi-language Coding Assessment with sample test runner
+  - Technical Interview Slot Scheduler
+- **Admin Side**:
+  - Secure Recruiter Login (`info@12links.co.za` / `Admin@12links` or 1-Click Demo)
+  - Recruitment Metrics & KPI Dashboard
+  - Kanban Pipeline & Candidate Dossier views
+  - Job Vacancies Manager (Create, edit, pause, publish openings)
+  - Coding Assessment Challenge Manager
+  - Instant "Restore Demo Data" button

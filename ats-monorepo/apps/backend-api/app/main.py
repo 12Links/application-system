@@ -8,8 +8,11 @@ from app.models import models
 # Import the routers we just built
 from app.routers import auth, applications, stages
 
-# This line creates all the tables in your Supabase database!
-Base.metadata.create_all(bind=engine)
+# Attempt table creation safely without crashing on missing DB connection
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Startup notice: Database table sync postponed ({e})")
 
 app = FastAPI(
     title="ATS Backend API",
@@ -17,10 +20,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Set up CORS so your React frontends can talk to this API
+# Set up CORS for Vercel multi-service routing, preview URLs, and localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # In production, you will change this to our Cloudflare Pages URLs
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

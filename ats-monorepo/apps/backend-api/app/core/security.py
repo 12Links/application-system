@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import uuid
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -20,11 +21,21 @@ def verify_access_token(token: str):
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = verify_access_token(token)
-    user_id = payload.get("sub")
-    if not user_id:
+    user_identifier = payload.get("sub")
+    if not user_identifier:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
     
-    user = db.query(User).filter(User.id == user_id).first()
+    user = None
+    # Lookup by UUID first, fallback to lookup by email
+    try:
+        user_uuid = uuid.UUID(user_identifier)
+        user = db.query(User).filter(User.id == user_uuid).first()
+    except (ValueError, TypeError, AttributeError):
+        pass
+
+    if not user:
+        user = db.query(User).filter(User.email == user_identifier).first()
+
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user

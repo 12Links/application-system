@@ -1,0 +1,24 @@
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.env
+
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Build outputs
+dist/
+build/
+.vercel/
+
+# Logs & temp
+*.log
+.DS_Store
+Thumbs.db

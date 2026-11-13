@@ -7,16 +7,22 @@ export enum ApplicationStage {
   Rejected = 'Rejected'
 }
 
+export type JobStatus = 'Active' | 'Paused' | 'Closed';
+
 export interface Job {
   id: string;
   title: string;
   department: string;
   location: string;
-  type: string; // 'Full-time' | 'Contract' | 'Remote' etc.
+  type: string; // 'Full-time' | 'Contract' | 'Remote' | 'Hybrid'
   salary: string;
   experience: string;
   description: string;
   requirements: string[];
+  benefits?: string[];
+  responsibilities?: string[];
+  status?: JobStatus;
+  featured?: boolean;
   createdAt: string;
 }
 
@@ -38,14 +44,20 @@ export interface Application {
   applicantEmail: string;
   applicantPhone: string;
   resumeUrl?: string;
+  resumeFileName?: string;
   portfolioUrl?: string;
   githubUrl?: string;
+  linkedinUrl?: string;
+  experienceYears?: string;
+  coverLetter?: string;
   appliedAt: string;
   currentStage: ApplicationStage;
   stageHistory: { stage: ApplicationStage; updatedAt: string; notes?: string }[];
-  interviewDate?: string; // scheduled interview date/time
+  interviewDate?: string;
   interviewTimeSlot?: string;
+  interviewNotes?: string;
   codingSubmission?: CodingSubmission;
+  adminFeedback?: string;
 }
 
 export interface Notification {
@@ -74,6 +86,6 @@ export interface User {
   phone?: string;
   portfolioUrl?: string;
   githubUrl?: string;
+  linkedinUrl?: string;
   password?: string;
 }
-

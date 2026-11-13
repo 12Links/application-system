@@ -7,8 +7,19 @@ import React, { useState } from 'react';
 import { StateProvider, useAppState } from './shared/StateContext';
 import { ApplicantPortal } from './applicant-portal/ApplicantPortal';
 import { AdminPortal } from './admin-portal/AdminPortal';
-import { AuthPage } from './shared/AuthPage';
-import { Shield, Sparkles, HelpCircle, MapPin, UserCheck } from 'lucide-react';
+import {
+  Shield,
+  Sparkles,
+  HelpCircle,
+  MapPin,
+  UserCheck,
+  Briefcase,
+  Users,
+  Layers,
+  RotateCcw,
+  ChevronRight,
+  ExternalLink
+} from 'lucide-react';
 import { CompanyLogo } from './shared/CompanyLogo';
 
 export default function App() {
@@ -21,103 +32,134 @@ export default function App() {
 
 function AppContent() {
   const [currentPortal, setCurrentPortal] = useState<'applicant' | 'admin'>('applicant');
-  const { currentUser } = useAppState();
-
-  const handleAuthSuccess = () => {
-    // Managed natively inside context
-  };
+  const [showDemoGuide, setShowDemoGuide] = useState(false);
+  const { jobs, applications, restoreDemoData } = useAppState();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-sky-500/10 selection:text-sky-600">
-      
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col">
-        {currentPortal === 'applicant' ? (
-          currentUser ? (
-            <ApplicantPortal />
-          ) : (
-            <div className="flex-1 flex flex-col bg-slate-50">
-              {/* Header for Auth Page */}
-              <header className="bg-white border-b border-slate-100 py-4 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CompanyLogo variant="horizontal" size="md" lightTheme={true} />
-                    <div className="hidden sm:flex items-center gap-1 pl-3.5 ml-3.5 border-l border-slate-200 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      <MapPin className="w-3.5 h-3.5 text-sky-500" />
-                      <span>Pretoria, South Africa</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                    Careers Node
-                  </span>
-                </div>
-              </header>
-              <div className="flex-1 flex items-center justify-center py-6">
-                <AuthPage onSuccess={handleAuthSuccess} />
-              </div>
-            </div>
-          )
-        ) : (
-          <AdminPortal />
-        )}
-      </div>
-
-      {/* Dynamic Simulation Instructions Panel & Bottom Portal Switcher */}
-      <footer className="bg-white border-t border-slate-100 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400 space-y-4">
-          <div className="flex items-center justify-center gap-1.5 text-slate-500 font-medium">
-            <HelpCircle className="w-4 h-4 text-slate-400" />
-            <span>Demonstration recruitment flow checklist:</span>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-indigo-500/10 selection:text-indigo-600">
+      {/* TOP SYSTEM PORTAL SWITCHER BAR */}
+      <div className="bg-slate-900 text-white px-4 py-2 border-b border-slate-800 text-xs">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          {/* Left badge & status */}
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-extrabold tracking-wide uppercase text-[10px] text-slate-300">
+              12 Links Recruitment System
+            </span>
+            <span className="hidden md:inline text-slate-600">•</span>
+            <span className="hidden md:flex items-center gap-1 text-[11px] text-slate-400">
+              <Briefcase className="w-3 h-3 text-sky-400" /> {jobs.length} Advertised Vacancies
+            </span>
+            <span className="hidden md:inline text-slate-600">•</span>
+            <span className="hidden md:flex items-center gap-1 text-[11px] text-slate-400">
+              <Users className="w-3 h-3 text-indigo-400" /> {applications.length} Candidates in Pipeline
+            </span>
           </div>
-          <p className="max-w-3xl mx-auto leading-relaxed text-[11px] text-slate-400">
-            1. Create a candidate profile on the <strong>Sign Up tab</strong> or click one of our test candidates. <br />
-            2. Choose an active vacancy and apply. Form fields are pre-filled automatically! <br />
-            3. Scroll down here to access the **Admin Panel** (hidden from the top to simulate standard applicant experience). <br />
-            4. In the **Admin Panel**, select the candidate, review their details, and advance them to the <strong>Coding Assessment</strong> stage. <br />
-            5. Switch back to the **Applicant Portal** at the bottom, complete and submit the interactive coding challenge. <br />
-            6. Grade the assessment inside the **Admin Panel** and advance them to the <strong>Interview</strong> round. <br />
-            7. Complete the loop by booking a slot on the integrated schedule selector.
-          </p>
-          
-          <div className="w-24 h-[1px] bg-slate-100 mx-auto" />
 
-          {/* Bottom Link To Admin / Portal Switcher */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-            <div className="text-[10px] text-slate-400 flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
-              <span className="font-bold text-slate-600 flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-sky-500" /> 12 Links Future Technologies (Pty) Ltd
-              </span>
-              <span className="hidden sm:inline">•</span>
-              <span>Pretoria, South Africa</span>
-              <span className="hidden sm:inline">•</span>
-              <span>Developer Recruitment Portal © 2026</span>
-            </div>
-
-            {/* Link to Admin is placed exclusively here at the bottom */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium text-slate-400">Staff access:</span>
+          {/* Right Mode Switcher Tabs */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400 hidden sm:inline">Active Portal View:</span>
+            <div className="inline-flex bg-slate-800 p-0.5 rounded-xl border border-slate-700">
               <button
-                id="toggle-portal-bottom-btn"
-                onClick={() => setCurrentPortal(currentPortal === 'applicant' ? 'admin' : 'applicant')}
-                className="px-3.5 py-1.5 bg-white border border-slate-200 hover:border-sky-200 hover:bg-sky-50 text-slate-600 hover:text-sky-600 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                id="select-applicant-portal-btn"
+                onClick={() => setCurrentPortal('applicant')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  currentPortal === 'applicant'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
               >
-                {currentPortal === 'applicant' ? (
-                  <>
-                    <Shield className="w-3.5 h-3.5 text-sky-500" />
-                    Access Company Admin Panel
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
-                    Switch to Careers/Applicant View
-                  </>
-                )}
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Applicant Side</span>
+              </button>
+
+              <button
+                id="select-admin-portal-btn"
+                onClick={() => setCurrentPortal('admin')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  currentPortal === 'admin'
+                    ? 'bg-slate-950 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5 text-sky-400" />
+                <span>Admin Site</span>
               </button>
             </div>
+
+            <button
+              onClick={() => setShowDemoGuide(!showDemoGuide)}
+              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              title="Toggle Testing & Simulation Guide"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* RECRUITMENT SIMULATION WALKTHROUGH BANNER (TOGGLEABLE) */}
+      {showDemoGuide && (
+        <div className="bg-indigo-950 text-indigo-100 p-4 border-b border-indigo-900 text-xs">
+          <div className="max-w-7xl mx-auto space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+                <Sparkles className="w-4 h-4 text-sky-400" />
+                <span>Interactive Recruitment Lifecycle Walkthrough:</span>
+              </div>
+              <button
+                onClick={() => setShowDemoGuide(false)}
+                className="text-[10px] text-indigo-300 hover:text-white"
+              >
+                Close Guide ×
+              </button>
+            </div>
+            <p className="text-[11px] text-indigo-200 leading-relaxed max-w-4xl">
+              <strong>1. Applicant Side:</strong> Browse open opportunities, read job descriptions & requirements, submit an application (with resume and cover note), track application progress using ID (e.g. APP-801), complete the interactive coding assessment, and book a technical interview slot.<br />
+              <strong>2. Admin Side:</strong> Login as staff (using 1-click demo button or info@12links.co.za), manage vacancies (create, edit, pause, publish), review candidate pipeline in Kanban or Dossier view, adjust evaluation scores, advance candidates across stages, and review scheduled interviews.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* MAIN VIEW AREA */}
+      <div className="flex-1 flex flex-col">
+        {currentPortal === 'applicant' ? <ApplicantPortal /> : <AdminPortal />}
+      </div>
+
+      {/* FOOTER */}
+      <footer className="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <span className="font-bold text-slate-700 flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-sky-500" /> 12 Links Future Technologies (Pty) Ltd
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span>Pretoria, South Africa</span>
+            <span className="hidden sm:inline">•</span>
+            <span>Applicant & Recruitment Platform</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPortal(currentPortal === 'applicant' ? 'admin' : 'applicant')}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              {currentPortal === 'applicant' ? (
+                <>
+                  <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Switch to Admin Site</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Switch to Applicant Site</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </footer>
-
     </div>
   );
 }

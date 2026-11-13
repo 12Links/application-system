@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Job, Application, ApplicationStage, Notification, CodingSubmission, User, CodingQuestion } from './types';
+import { Job, Application, ApplicationStage, Notification, CodingSubmission, User, CodingQuestion, JobStatus } from './types';
+import { INITIAL_JOBS, INITIAL_APPLICATIONS, INITIAL_QUESTIONS, INITIAL_USERS } from './mockData';
 
 interface StateContextType {
   jobs: Job[];
@@ -13,9 +14,11 @@ interface StateContextType {
   signIn: (email: string, password?: string) => { success: boolean; message: string };
   signOut: () => void;
   addJob: (job: Omit<Job, 'id' | 'createdAt'>) => void;
+  updateJob: (id: string, updatedFields: Partial<Job>) => void;
   deleteJob: (id: string) => void;
+  toggleJobStatus: (id: string) => void;
   applyToJob: (appData: {
-    id?: string; // NEW: Allows us to pass the real backend ID
+    id?: string;
     jobId: string;
     jobTitle: string;
     applicantName: string;
@@ -23,15 +26,21 @@ interface StateContextType {
     applicantPhone: string;
     portfolioUrl?: string;
     githubUrl?: string;
+    linkedinUrl?: string;
     resumeUrl?: string;
-  }) => string; 
+    resumeFileName?: string;
+    experienceYears?: string;
+    coverLetter?: string;
+  }) => string;
   updateApplicationStage: (appId: string, stage: ApplicationStage, notes?: string) => void;
   submitCoding: (appId: string, submission: CodingSubmission) => void;
-  scheduleInterviewSlot: (appId: string, date: string, timeSlot: string) => void;
+  scheduleInterviewSlot: (appId: string, date: string, timeSlot: string, notes?: string) => void;
   addFeedback: (appId: string, score: number, feedback: string) => void;
+  deleteApplication: (appId: string) => void;
   addNotification: (applicationId: string, title: string, message: string, type: Notification['type']) => void;
   markNotificationAsRead: (id: string) => void;
   clearNotifications: () => void;
+  restoreDemoData: () => void;
   resetAllData: () => void;
   questions: CodingQuestion[];
   saveQuestion: (question: Omit<CodingQuestion, 'id'> & { id?: string }) => void;
@@ -41,38 +50,101 @@ interface StateContextType {
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Jobs
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem('ats_jobs');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_JOBS;
   });
 
+  // Applications
   const [applications, setApplications] = useState<Application[]>(() => {
     const saved = localStorage.getItem('ats_applications');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_APPLICATIONS;
   });
 
+  // Questions
   const [questions, setQuestions] = useState<CodingQuestion[]>(() => {
     const saved = localStorage.getItem('ats_questions');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_QUESTIONS;
   });
 
+  // Notifications
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem('ats_notifications');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 'notif-welcome',
+        applicationId: 'APP-801',
+        title: 'Interview Stage Unlocked',
+        message: 'Your coding challenge passed with 92%! Your live technical interview is confirmed for July 16, 2026.',
+        type: 'success',
+        createdAt: new Date().toISOString(),
+        read: false
+      }
+    ];
   });
 
+  // Active Application ID
   const [activeApplicationId, setActiveApplicationIdState] = useState<string | null>(() => {
-    return localStorage.getItem('ats_active_app_id');
+    return localStorage.getItem('ats_active_app_id') || 'APP-801';
   });
 
+  // Users
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('ats_users');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_USERS;
   });
 
+  // Current User
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
     const saved = localStorage.getItem('ats_current_user');
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return null;
   });
 
   const setCurrentUser = (user: User | null) => {
@@ -113,6 +185,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('ats_questions', JSON.stringify(questions));
   }, [questions]);
 
+  // Auth Functions
   const signUp = (userData: Omit<User, 'id'>) => {
     const existing = users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
     if (existing) {
@@ -131,21 +204,19 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const existingApp = applications.find(app => app.applicantEmail.toLowerCase() === userData.email.toLowerCase());
     if (existingApp) {
       setActiveApplicationId(existingApp.id);
-    } else {
-      setActiveApplicationId(null);
     }
 
-    return { success: true, message: 'Sign up successful!' };
+    return { success: true, message: 'Profile created successfully!' };
   };
 
   const signIn = (email: string, password?: string) => {
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
-      return { success: false, message: 'No account found with this email!' };
+      return { success: false, message: 'No registered applicant found with this email. Please check or sign up!' };
     }
 
     if (password && user.password && user.password !== password) {
-      return { success: false, message: 'Incorrect password!' };
+      return { success: false, message: 'Incorrect password entered.' };
     }
 
     setCurrentUser(user);
@@ -153,34 +224,48 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const existingApp = applications.find(app => app.applicantEmail.toLowerCase() === email.toLowerCase());
     if (existingApp) {
       setActiveApplicationId(existingApp.id);
-    } else {
-      setActiveApplicationId(null);
     }
 
-    return { success: true, message: 'Sign in successful!' };
+    return { success: true, message: 'Signed in successfully!' };
   };
 
   const signOut = () => {
     setCurrentUser(null);
-    setActiveApplicationId(null);
   };
 
+  // Job Management
   const addJob = (jobData: Omit<Job, 'id' | 'createdAt'>) => {
     const newJob: Job = {
       ...jobData,
       id: `job-${Date.now()}`,
+      status: jobData.status || 'Active',
       createdAt: new Date().toISOString().split('T')[0]
     };
     setJobs(prev => [newJob, ...prev]);
+  };
+
+  const updateJob = (id: string, updatedFields: Partial<Job>) => {
+    setJobs(prev => prev.map(job => (job.id === id ? { ...job, ...updatedFields } : job)));
   };
 
   const deleteJob = (id: string) => {
     setJobs(prev => prev.filter(j => j.id !== id));
   };
 
+  const toggleJobStatus = (id: string) => {
+    setJobs(prev =>
+      prev.map(j => {
+        if (j.id !== id) return j;
+        const nextStatus: JobStatus = j.status === 'Active' ? 'Paused' : 'Active';
+        return { ...j, status: nextStatus };
+      })
+    );
+  };
+
+  // Question Management
   const saveQuestion = (qData: Omit<CodingQuestion, 'id'> & { id?: string }) => {
     if (qData.id) {
-      setQuestions(prev => prev.map(q => q.id === qData.id ? { ...q, ...qData } as CodingQuestion : q));
+      setQuestions(prev => prev.map(q => (q.id === qData.id ? ({ ...q, ...qData } as CodingQuestion) : q)));
     } else {
       const newQuestion: CodingQuestion = {
         ...qData,
@@ -194,6 +279,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setQuestions(prev => prev.filter(q => q.id !== id));
   };
 
+  // Applications
   const applyToJob = (appData: {
     id?: string;
     jobId: string;
@@ -203,9 +289,15 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     applicantPhone: string;
     portfolioUrl?: string;
     githubUrl?: string;
+    linkedinUrl?: string;
     resumeUrl?: string;
+    resumeFileName?: string;
+    experienceYears?: string;
+    coverLetter?: string;
   }) => {
-    const newId = appData.id || `app-${Date.now()}`;
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const newId = appData.id || `APP-${randomSuffix}`;
+
     const newApp: Application = {
       id: newId,
       jobId: appData.jobId,
@@ -215,14 +307,18 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       applicantPhone: appData.applicantPhone,
       portfolioUrl: appData.portfolioUrl,
       githubUrl: appData.githubUrl,
+      linkedinUrl: appData.linkedinUrl,
       resumeUrl: appData.resumeUrl,
+      resumeFileName: appData.resumeFileName || 'Resume_Document.pdf',
+      experienceYears: appData.experienceYears || '1-3 Years',
+      coverLetter: appData.coverLetter,
       appliedAt: new Date().toISOString(),
       currentStage: ApplicationStage.Applied,
       stageHistory: [
         {
           stage: ApplicationStage.Applied,
           updatedAt: new Date().toISOString(),
-          notes: 'Application submitted through the portal.'
+          notes: 'Application received via 12 Links Careers portal.'
         }
       ]
     };
@@ -232,8 +328,8 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     addNotification(
       newId,
-      'Application Submitted!',
-      `Thank you for applying to the ${appData.jobTitle} position. We have received your application.`,
+      'Application Submitted Successfully!',
+      `Thank you for applying to the ${appData.jobTitle} position. Your application ID is ${newId}.`,
       'success'
     );
 
@@ -241,61 +337,63 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateApplicationStage = (appId: string, stage: ApplicationStage, notes?: string) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id !== appId) return app;
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.id !== appId) return app;
 
-      const stageChanged = app.currentStage !== stage;
-      const updatedHistory = [...app.stageHistory];
-      
-      if (stageChanged || notes) {
-        updatedHistory.push({
-          stage,
-          updatedAt: new Date().toISOString(),
-          notes: notes || `Moved to ${stage} stage.`
-        });
-      }
+        const stageChanged = app.currentStage !== stage;
+        const updatedHistory = [...app.stageHistory];
 
-      return {
-        ...app,
-        currentStage: stage,
-        stageHistory: updatedHistory
-      };
-    }));
+        if (stageChanged || notes) {
+          updatedHistory.push({
+            stage,
+            updatedAt: new Date().toISOString(),
+            notes: notes || `Application moved to ${stage} stage.`
+          });
+        }
 
-    const app = applications.find(a => a.id === appId);
-    if (app) {
+        return {
+          ...app,
+          currentStage: stage,
+          stageHistory: updatedHistory
+        };
+      })
+    );
+
+    const targetApp = applications.find(a => a.id === appId);
+    if (targetApp) {
       let notifTitle = '';
       let notifMsg = '';
       let type: Notification['type'] = 'info';
 
       switch (stage) {
         case ApplicationStage.TechnicalScreening:
-          notifTitle = 'Application Under Review';
-          notifMsg = `Your application for ${app.jobTitle} is now being actively reviewed by our engineering recruitment team.`;
+          notifTitle = 'Screening in Progress';
+          notifMsg = `Your application for ${targetApp.jobTitle} is being reviewed by the engineering leadership team.`;
           break;
         case ApplicationStage.CodingAssessment:
-          notifTitle = 'Coding Challenge Unlocked!';
-          notifMsg = `Great news! You have been advanced to the Live Coding Assessment round for ${app.jobTitle}. Click on the "Coding Assessment" tab to start your challenge.`;
+          notifTitle = 'Coding Assessment Unlocked!';
+          notifMsg = `Great news! You have been advanced to the Coding Assessment stage for ${targetApp.jobTitle}. Access your challenge in the Coding Assessment tab.`;
           type = 'success';
           break;
         case ApplicationStage.Interview:
-          notifTitle = 'Interview Round Unlocked!';
-          notifMsg = `Excellent! Your coding assessment has been approved. You are advanced to the Live Technical Interview. Please choose your preferred date and time.`;
+          notifTitle = 'Technical Interview Round!';
+          notifMsg = `Congratulations! You have been invited to schedule your live technical interview for ${targetApp.jobTitle}.`;
           type = 'success';
           break;
         case ApplicationStage.Offered:
-          notifTitle = 'Congratulations! Job Offer Extended';
-          notifMsg = `We are absolutely thrilled to extend an official job offer for the ${app.jobTitle} position! Check your inbox for details.`;
+          notifTitle = 'Official Job Offer Extended! 🎉';
+          notifMsg = `We are delighted to extend an official job offer for the ${targetApp.jobTitle} role! Welcome to the team!`;
           type = 'success';
           break;
         case ApplicationStage.Rejected:
           notifTitle = 'Application Status Update';
-          notifMsg = `Thank you for taking the time to interview with us for ${app.jobTitle}. Unfortunately, we have decided to move forward with other candidates at this time.`;
+          notifMsg = `Thank you for your interest and time in interviewing with 12 Links for ${targetApp.jobTitle}. At this time, we are moving forward with other applicants.`;
           type = 'warning';
           break;
         default:
-          notifTitle = 'Status Updated';
-          notifMsg = `Your application for ${app.jobTitle} was updated to: ${stage}.`;
+          notifTitle = 'Stage Updated';
+          notifMsg = `Your application stage was updated to ${stage}.`;
       }
 
       addNotification(appId, notifTitle, notifMsg, type);
@@ -303,122 +401,137 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const submitCoding = (appId: string, submission: CodingSubmission) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id !== appId) return app;
-      
-      const score = submission.score ?? 0;
-      const passed = score >= 70;
-      
-      const newHistory = [...app.stageHistory];
-      let nextStage = app.currentStage;
-      let notes = `Submitted coding assessment in ${submission.language}. Score: ${score}% (${submission.testCasesPassed}/${submission.testCasesTotal} test cases passed).`;
-      
-      if (passed) {
-        nextStage = ApplicationStage.Interview;
-        newHistory.push({
-          stage: ApplicationStage.Interview,
-          updatedAt: new Date().toISOString(),
-          notes: `${notes} Auto-advanced to Technical Interview due to passing score.`
-        });
-      } else {
-        newHistory.push({
-          stage: ApplicationStage.CodingAssessment,
-          updatedAt: new Date().toISOString(),
-          notes: `${notes} Coding score did not meet 70% auto-advance criteria. Pending review.`
-        });
-      }
+    const score = submission.score ?? 0;
+    const passed = score >= 70;
 
-      return {
-        ...app,
-        currentStage: nextStage,
-        stageHistory: newHistory,
-        codingSubmission: submission
-      };
-    }));
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.id !== appId) return app;
+
+        const newHistory = [...app.stageHistory];
+        let nextStage = app.currentStage;
+        const notes = `Submitted coding assessment in ${submission.language}. Score: ${score}% (${submission.testCasesPassed ?? 0}/${submission.testCasesTotal ?? 3} test cases passed).`;
+
+        if (passed) {
+          nextStage = ApplicationStage.Interview;
+          newHistory.push({
+            stage: ApplicationStage.Interview,
+            updatedAt: new Date().toISOString(),
+            notes: `${notes} Auto-advanced to Technical Interview stage.`
+          });
+        } else {
+          newHistory.push({
+            stage: ApplicationStage.CodingAssessment,
+            updatedAt: new Date().toISOString(),
+            notes: `${notes} Score pending review by engineering hiring team.`
+          });
+        }
+
+        return {
+          ...app,
+          currentStage: nextStage,
+          stageHistory: newHistory,
+          codingSubmission: submission
+        };
+      })
+    );
 
     const app = applications.find(a => a.id === appId);
     if (app) {
-      const score = submission.score ?? 0;
-      const passed = score >= 70;
       addNotification(
         appId,
-        'Coding Challenge Completed',
-        passed 
-          ? `You passed the Coding Assessment with a score of ${score}%! You are advanced to the Live Technical Interview. Please pick a slot.` 
-          : `You submitted your Coding Assessment. Score: ${score}%. The recruitment team will review your submission shortly.`,
+        passed ? 'Coding Challenge Passed! 🎉' : 'Assessment Submitted',
+        passed
+          ? `Outstanding! You scored ${score}% on the Coding Assessment and have been advanced to the Live Technical Interview!`
+          : `Assessment submitted with a score of ${score}%. The hiring team has been notified.`,
         passed ? 'success' : 'info'
       );
     }
   };
 
-  const scheduleInterviewSlot = (appId: string, date: string, timeSlot: string) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id !== appId) return app;
-      
-      const newHistory = [...app.stageHistory];
-      newHistory.push({
-        stage: app.currentStage,
-        updatedAt: new Date().toISOString(),
-        notes: `Scheduled Live Technical Interview for ${date} at ${timeSlot}.`
-      });
+  const scheduleInterviewSlot = (appId: string, date: string, timeSlot: string, notes?: string) => {
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.id !== appId) return app;
 
-      return {
-        ...app,
-        interviewDate: date,
-        interviewTimeSlot: timeSlot,
-        stageHistory: newHistory
-      };
-    }));
+        const newHistory = [...app.stageHistory];
+        newHistory.push({
+          stage: app.currentStage,
+          updatedAt: new Date().toISOString(),
+          notes: `Scheduled Live Technical Interview for ${date} at ${timeSlot}.${notes ? ` Details: ${notes}` : ''}`
+        });
+
+        return {
+          ...app,
+          interviewDate: date,
+          interviewTimeSlot: timeSlot,
+          interviewNotes: notes || 'Live video interview via Google Meet / Microsoft Teams.',
+          stageHistory: newHistory
+        };
+      })
+    );
 
     const app = applications.find(a => a.id === appId);
     if (app) {
       addNotification(
         appId,
-        'Interview Scheduled Successfully!',
-        `Your developer live technical interview for ${app.jobTitle} is confirmed for ${date} at ${timeSlot}. A calendar invite has been sent.`,
+        'Interview Confirmed!',
+        `Your live technical interview for ${app.jobTitle} is confirmed for ${date} at ${timeSlot}. A calendar invite has been dispatched.`,
         'success'
       );
     }
   };
 
   const addFeedback = (appId: string, score: number, feedback: string) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id !== appId) return app;
-      
-      const updatedSubmission = app.codingSubmission ? {
-        ...app.codingSubmission,
-        score,
-        feedback
-      } : {
-        code: '// No code submitted',
-        language: 'typescript',
-        submittedAt: new Date().toISOString(),
-        score,
-        feedback,
-        testCasesPassed: Math.round(score / 33),
-        testCasesTotal: 3
-      };
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.id !== appId) return app;
 
-      return {
-        ...app,
-        codingSubmission: updatedSubmission
-      };
-    }));
+        const updatedSubmission: CodingSubmission = app.codingSubmission
+          ? {
+              ...app.codingSubmission,
+              score,
+              feedback
+            }
+          : {
+              code: '// Code evaluated by hiring manager',
+              language: 'typescript',
+              submittedAt: new Date().toISOString(),
+              score,
+              feedback,
+              testCasesPassed: Math.round(score / 33.3),
+              testCasesTotal: 3
+            };
+
+        return {
+          ...app,
+          adminFeedback: feedback,
+          codingSubmission: updatedSubmission
+        };
+      })
+    );
 
     const app = applications.find(a => a.id === appId);
     if (app) {
       addNotification(
         appId,
-        'Coding Assessment Evaluated',
-        `An interviewer left feedback on your coding assessment. Score: ${score}%. Feedback: "${feedback.slice(0, 50)}..."`,
+        'Recruiter Feedback Added',
+        `The hiring team reviewed your assessment: Score ${score}%. Feedback: "${feedback.slice(0, 60)}..."`,
         'info'
       );
     }
   };
 
+  const deleteApplication = (appId: string) => {
+    setApplications(prev => prev.filter(a => a.id !== appId));
+    if (activeApplicationId === appId) {
+      setActiveApplicationId(null);
+    }
+  };
+
   const addNotification = (applicationId: string, title: string, message: string, type: Notification['type']) => {
     const newNotif: Notification = {
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       applicationId,
       title,
       message,
@@ -430,11 +543,24 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const markNotificationAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const clearNotifications = () => {
     setNotifications([]);
+  };
+
+  const restoreDemoData = () => {
+    setJobs(INITIAL_JOBS);
+    setApplications(INITIAL_APPLICATIONS);
+    setQuestions(INITIAL_QUESTIONS);
+    setUsers(INITIAL_USERS);
+    setActiveApplicationId('APP-801');
+    localStorage.setItem('ats_jobs', JSON.stringify(INITIAL_JOBS));
+    localStorage.setItem('ats_applications', JSON.stringify(INITIAL_APPLICATIONS));
+    localStorage.setItem('ats_questions', JSON.stringify(INITIAL_QUESTIONS));
+    localStorage.setItem('ats_users', JSON.stringify(INITIAL_USERS));
+    localStorage.setItem('ats_active_app_id', 'APP-801');
   };
 
   const resetAllData = () => {
@@ -445,7 +571,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem('ats_users');
     localStorage.removeItem('ats_current_user');
     localStorage.removeItem('ats_questions');
-    
+
     setJobs([]);
     setApplications([]);
     setNotifications([]);
@@ -456,32 +582,38 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <StateContext.Provider value={{
-      jobs,
-      applications,
-      notifications,
-      activeApplicationId,
-      setActiveApplicationId,
-      currentUser,
-      users,
-      signUp,
-      signIn,
-      signOut,
-      addJob,
-      deleteJob,
-      applyToJob,
-      updateApplicationStage,
-      submitCoding,
-      scheduleInterviewSlot,
-      addFeedback,
-      addNotification,
-      markNotificationAsRead,
-      clearNotifications,
-      resetAllData,
-      questions,
-      saveQuestion,
-      deleteQuestion
-    }}>
+    <StateContext.Provider
+      value={{
+        jobs,
+        applications,
+        notifications,
+        activeApplicationId,
+        setActiveApplicationId,
+        currentUser,
+        users,
+        signUp,
+        signIn,
+        signOut,
+        addJob,
+        updateJob,
+        deleteJob,
+        toggleJobStatus,
+        applyToJob,
+        updateApplicationStage,
+        submitCoding,
+        scheduleInterviewSlot,
+        addFeedback,
+        deleteApplication,
+        addNotification,
+        markNotificationAsRead,
+        clearNotifications,
+        restoreDemoData,
+        resetAllData,
+        questions,
+        saveQuestion,
+        deleteQuestion
+      }}
+    >
       {children}
     </StateContext.Provider>
   );
